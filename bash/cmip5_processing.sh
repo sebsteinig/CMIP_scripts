@@ -38,7 +38,7 @@ observations="HadCRUT4"         # HadISST HadSST3 CMAP GPCP HadSLP2 MLD ERSST Ha
 period_1=1870-2005              # time period for which the data gets processed
 res=HadCRUT4                    # ERSST, r180x89, r360x180
 remap=remapbil
-actions="4"                     # choose which sections of the script get executed; see list above
+actions="3 4"                     # choose which sections of the script get executed; see list above
 
 ##########################################################################################	
 # choose plots ( 0 = no / 1 = yes )
@@ -162,6 +162,7 @@ if [ $actid -eq 4 ];then # process data with cdo
 	
     mkdir -p $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution
     mkdir -p $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}
+    mkdir -p $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies
 	rm -f $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution/*      # remove old data
 	rm -f $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}/*       # remove old data
 	
@@ -187,10 +188,9 @@ if [ $actid -eq 4 ];then # process data with cdo
 		
 		count=$(find . -maxdepth 1 -name '*.nc' | wc -l)                   # check whether model data is split into multiple files
 		
-		# if there is only 1 file, then link it to the processed folder and to the original_resolution folder
+		# if there is only 1 file, then link it to the processed folder
 		if [ $count -eq 1 ]; then
 			ln *.nc processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
-			ln -s *.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${first_model_year}-${last_model_year}_original_resolution.nc
 		# else merge individual files together 
 		else
 			cdo mergetime *.nc processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
@@ -241,8 +241,19 @@ if [ $actid -eq 4 ];then # process data with cdo
             	    cdo -chunit,K,C -addc,-273.15 -setctomiss,0 ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
             	    rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
             	fi
+				
+				if [ "$variable" == "zg" ]; then 
+					cdo -${remap},t42grid -ymonmean -selyear,1980/1999 -sellevel,50000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_500_${realm}_${model}_${experiment}_CMIP5_r1i1p1_1980-1999_clim_${remap}_T42.nc
+				elif [ "$variable" == "ua" ] || [ "$variable" == "va" ] || [ "$variable" == "ta" ]; then 
+					cdo -${remap},t42grid -ymonmean -selyear,1980/1999 -sellevel,85000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_850_${realm}_${model}_${experiment}_CMIP5_r1i1p1_1980-1999_clim_${remap}_T42.nc
+					cdo -${remap},t42grid -ymonmean -selyear,1980/1999 -sellevel,20000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_200_${realm}_${model}_${experiment}_CMIP5_r1i1p1_1980-1999_clim_${remap}_T42.nc
+				else
+					cdo -${remap},t42grid -ymonmean -selyear,1980/1999 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_1980-1999_clim_${remap}_T42.nc
+				fi			
             	
-            	if [ $first_model_year -le ${start_1} ]; then # process model data only if it starts before selected perios
+				# process model data only if it starts before selected period and is not a 4D-variable
+            	if [ $first_model_year -le ${start_1} ] && ( [ "$variable" != "zg" ]  ||  [ "$variable" != "ta" ] || \
+					[ "$variable" != "ua" ] || [ "$variable" != "va" ] ); then 
 					cdo -${remap},$CMIP_dir/data/observations/${res}/HadCRUT4_1870-2005.nc -selyear,${start_1}/${end_1} -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_${remap}_${res}.nc
            		fi
 				
@@ -258,9 +269,11 @@ if [ $actid -eq 4 ];then # process data with cdo
 		# remove the individual model folders -> change to file list as obtained by the wget script
 		mv $CMIP_dir/data/CMIP5/$experiment/$realm/$variable/$model/*.nc $CMIP_dir/data/CMIP5/$experiment/$realm/$variable
 		rm -r $CMIP_dir/data/CMIP5/$experiment/$realm/$variable/$model/
-		unset models[i]
 		cd $CMIP_dir/data/CMIP5/$experiment/$realm/$variable
-		
+		if [ $count -eq 1 ]; then
+			ln -s *${model}*.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${first_model_year}-${last_model_year}_original_resolution.nc
+	    fi
+		unset models[i]		
 	done
 	
 	if [ ${ensemble_mean_flag} -eq 1 ]; then # remove old ensemble mean and calculate new one
@@ -268,8 +281,20 @@ if [ $actid -eq 4 ];then # process data with cdo
 	    rm -f ${variable}*mmm*${period_1}*${res}*
 		# HadGEM models get excluded, since they only provide data until 200511 -> different number of timesteps than other models
 	    cdo ensmean $(ls ${variable}*${period_1}*${res}* |grep -vi "HadGEM") ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_${remap}_${res}.nc
-	fi
-	
+		
+		cd $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies
+		rm -f ${variable}*mmm*1980-1999*
+		if [ "$variable" == "zg" ]; then 
+			cdo ensmean ${variable}*500*1980-1999*T42* ${variable}_500_${realm}_mmm_${experiment}_CMIP5_r1i1p1_1980-1999_clim_${remap}_T42.nc	
+		elif [ "$variable" == "ua" ] || [ "$variable" == "va" ] || [ "$variable" == "ta" ]; then 
+			cdo ensmean ${variable}*850*1980-1999*T42* ${variable}_850_${realm}_mmm_${experiment}_CMIP5_r1i1p1_1980-1999_clim_${remap}_T42.nc	
+			cdo ensmean ${variable}*200*1980-1999*T42* ${variable}_200_${realm}_mmm_${experiment}_CMIP5_r1i1p1_1980-1999_clim_${remap}_T42.nc	
+		else
+			cdo ensmean ${variable}*1980-1999*T42* ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_1980-1999_clim_${remap}_T42.nc	
+		fi
+		
+	fi	
+
 fi
 
 ##########################################################################################
