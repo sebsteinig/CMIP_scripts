@@ -160,9 +160,11 @@ fi
 
 	cd $CMIP_dir/data/CMIP5/$experiment/$realm/$variable       
 	
-    mkdir -p $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable
     mkdir -p $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution
+    mkdir -p $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}
 	rm -f $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution/*       # remove old data
+	rm -f $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}/*       # remove old data
+	
 	
 	model_array=( $(find . -type d -maxdepth 1 -exec printf "{} " \;) )		# create array containing all model names
 
@@ -260,12 +262,6 @@ fi
 				cdo selyear,${start_1}/${end_1} -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_original_resolution.nc
 				cdo -${remap},$CMIP_dir/data/observations/${res}/HadCRUT4_1870-2005.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_original_resolution.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_${remap}_${res}.nc
 				
-				keep_resolution=0
-				
-				if [ $keep_resolution -ne 1 ]; then 
-					rm -f ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_original_resolution.nc
-				fi
-
            		fi
 				
            		rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
@@ -274,7 +270,7 @@ fi
 		
 		cd ../..
 		if [ -f $CMIP_dir/data/CMIP5/$experiment/$realm/$variable/$model/processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_${remap}_${res}.nc ]; then 
-			mv ${model}/processed/*.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable; 
+			mv ${model}/processed/*.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}; 
 		fi
 		rm -r ${model}/processed
 		mv $CMIP_dir/data/CMIP5/$experiment/$realm/$variable/$model/*.nc $CMIP_dir/data/CMIP5/$experiment/$realm/$variable
@@ -286,7 +282,7 @@ fi
 	
 	if [ ${ensemble_mean_flag} -eq 1 ]; then
 	
-	cd $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/
+	cd $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}/
 	rm -f ${variable}*mmm*${period_1}*${res}*
 	rm -f original_resolution/${variable}*mmm*${period_1}*original_resolution.nc
 	cdo ensmean ${variable}*${period_1}*${res}* ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_${remap}_${res}.nc
