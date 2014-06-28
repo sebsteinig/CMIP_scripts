@@ -38,7 +38,7 @@ observations="HadCRUT4"         # HadISST HadSST3 CMAP GPCP HadSLP2 MLD ERSST Ha
 period_1=1870-2005              # time period for which the data gets processed
 res=HadCRUT4                    # ERSST, r180x89, r360x180
 remap=remapbil
-actions="3 4"                     # choose which sections of the script get executed; see list above
+actions="4"                     # choose which sections of the script get executed; see list above
 
 ##########################################################################################	
 # choose plots ( 0 = no / 1 = yes )
@@ -156,44 +156,42 @@ fi
 
 ##########################################################################################
     
- if [ $actid -eq 4 ];then # process data with cdo 
+if [ $actid -eq 4 ];then # process data with cdo 
 
-	cd $CMIP_dir/data/CMIP5/$experiment/$realm/$variable       
+    cd $CMIP_dir/data/CMIP5/$experiment/$realm/$variable       
 	
     mkdir -p $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution
     mkdir -p $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}
-	rm -f $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution/*       # remove old data
+	rm -f $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution/*      # remove old data
 	rm -f $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}/*       # remove old data
-	
 	
 	model_array=( $(find . -type d -maxdepth 1 -exec printf "{} " \;) )		# create array containing all model names
 
-	for index in ${!model_array[*]}; do
-	                                                                                                        
-        models[index]=${model_array[index]#./}								# remove "./" from the model names
-        
+	for index in ${!model_array[*]}; do                                                                                                        
+        models[index]=${model_array[index]#./}								# remove "./" from the model names      
 	done
 	
 	loop_length=$(expr ${#models[*]} - 1)									
 
 	while [[ $((++i)) -le ${loop_length} ]]; do                            # loop over all folders
-       
     	cd ${models[i]}
         echo 'processing ' ${models[i]}
-        file=`ls *.nc |tail -n1`
-		last_model_year=`echo $file | rev | cut -c 6-9 | rev`
+        file=`ls *.nc |tail -n1`                                           
+		last_model_year=`echo $file | rev | cut -c 6-9 | rev`              # find last model year
 		file_1=`ls *.nc |head -n1`
-		first_model_year=`echo $file_1 | rev | cut -c 13-16 | rev`
+		first_model_year=`echo $file_1 | rev | cut -c 13-16 | rev`         # find first model year
         model=${PWD##*/}
 
-        if [ -d processed ]; then rm -r processed; fi 			# remove old data
+        if [ -d processed ]; then rm -r processed; fi 			           # remove old data
         mkdir processed
 		
-		count=$(find . -maxdepth 1 -name '*.nc' | wc -l)
+		count=$(find . -maxdepth 1 -name '*.nc' | wc -l)                   # check whether model data is split into multiple files
 		
+		# if there is only 1 file, then link it to the processed folder and to the original_resolution folder
 		if [ $count -eq 1 ]; then
 			ln *.nc processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
-			ln *.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${first_model_year}-${last_model_year}_original_resolution.nc
+			ln -s *.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${first_model_year}-${last_model_year}_original_resolution.nc
+		# else merge individual files together 
 		else
 			cdo mergetime *.nc processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
 			cp -p processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${first_model_year}-${last_model_year}_original_resolution.nc
@@ -201,78 +199,63 @@ fi
 		
 		cd processed
 	
+		# further proceeding is dependent of the variable
         case $variable in 
-            msftmyz)   
-                                                                                     # depending on variable and 
+            msftmyz) # MOC streamfunction -> no vertical interpolation between model grids
 				if [ $first_model_year -le ${start_1} ]; then
-				
- 				cdo  -selyear,${start_1}/${end_1} -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}.nc
-			
+ 				    cdo  -selyear,${start_1}/${end_1} -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}.nc
 				fi
 				
 				rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
 				
                 ;;
-            zosga|zossga|zostoga)
-            
+            zosga|zossga|zostoga) # global average times eries of sea level change -> no remapping needed 
             	if [ $first_model_year -le 1861 ]; then
-            	
-				cdo selyear,1861/2005 ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_1861-2005.nc
-				rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
-				
+				    cdo selyear,1861/2005 ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_1861-2005.nc
+				    rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc			
 				fi
                 ;;
             *)
-            	ensemble_mean_flag=1
+            	ensemble_mean_flag=1 # calculate a multi model ensemble mean in the end
             
-            	if [ "$variable" == "psl" ]; then
-            	 
-            	mv ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
-            	cdo divc,100 ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
-            	rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
-            	
+            	if [ "$variable" == "psl" ]; then # divide pressure values by 100 (Pa -> hPa)    	 
+            	    mv ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
+            	    cdo divc,100 ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
+            	    rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc         	
             	fi
             	
-            	if [ "$variable" == "tas" ] || [ "$variable" == "ta" ]; then
-            	 
-            	mv ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
-            	cdo -chunit,K,°C -addc,-273.15 ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
-            	rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
+            	if [ "$variable" == "tas" ] || [ "$variable" == "ta" ]; then # convert °K to °C
+            	    mv ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
+            	    cdo -chunit,K,°C -addc,-273.15 ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
+            	    rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
+			    fi
             	
+            	if [ "$variable" == "pr" ]; then # convert to mm/day
+            	    mv ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
+            	    cdo mulc,86400 ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
+            	    rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
             	fi
             	
-            	if [ "$variable" == "pr" ]; then
-            	 
-            	mv ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
-            	cdo mulc,86400 ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
-            	rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
-            	
+            	if [ "$model" != "GFDL-CM2p1" ] && [ "$variable" == "tos" ]; then # convert all to °C, except GFDL-CM2p1  model (already has °C unit)
+					mv ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
+            	    cdo -chunit,K,C -addc,-273.15 -setctomiss,0 ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
+            	    rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
             	fi
             	
-            	if [ "$model" != "GFDL-CM2p1" ] && [ "$variable" == "tos" ]; then 
-            	
-            	mv ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
-            	cdo -chunit,K,C -addc,-273.15 -setctomiss,0 ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
-            	rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
-            	
-            	fi
-            	
-            	if [ $first_model_year -le ${start_1} ]; then 
-            	
-				cdo selyear,${start_1}/${end_1} -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_original_resolution.nc
-				cdo -${remap},$CMIP_dir/data/observations/${res}/HadCRUT4_1870-2005.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_original_resolution.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_${remap}_${res}.nc
-				
+            	if [ $first_model_year -le ${start_1} ]; then # process model data only if it starts before selected perios
+					cdo -${remap},$CMIP_dir/data/observations/${res}/HadCRUT4_1870-2005.nc -selyear,${start_1}/${end_1} -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_${remap}_${res}.nc
            		fi
 				
-           		rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
-           		
+           		rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc # delete temporal data
             esac
 		
 		cd ../..
+		# if model data got processed, move it from data to processed directory
 		if [ -f $CMIP_dir/data/CMIP5/$experiment/$realm/$variable/$model/processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_${remap}_${res}.nc ]; then 
 			mv ${model}/processed/*.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}; 
 		fi
 		rm -r ${model}/processed
+		# remove the individual model folders -> change to file list as obtained by the wget script
 		mv $CMIP_dir/data/CMIP5/$experiment/$realm/$variable/$model/*.nc $CMIP_dir/data/CMIP5/$experiment/$realm/$variable
 		rm -r $CMIP_dir/data/CMIP5/$experiment/$realm/$variable/$model/
 		unset models[i]
@@ -280,14 +263,11 @@ fi
 		
 	done
 	
-	if [ ${ensemble_mean_flag} -eq 1 ]; then
-	
-	cd $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}/
-	rm -f ${variable}*mmm*${period_1}*${res}*
-	rm -f original_resolution/${variable}*mmm*${period_1}*original_resolution.nc
-	cdo ensmean ${variable}*${period_1}*${res}* ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_${remap}_${res}.nc
-	cdo ensmean original_resolution/${variable}*${period_1}*original_resolution.nc ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_${remap}_original_resolution.nc
-			
+	if [ ${ensemble_mean_flag} -eq 1 ]; then # remove old ensemble mean and calculate new one
+	    cd $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}/
+	    rm -f ${variable}*mmm*${period_1}*${res}*
+		# HadGEM models get excluded, since they only provide data until 200511 -> different number of timesteps than other models
+	    cdo ensmean $(ls ${variable}*${period_1}*${res}* |grep -vi "HadGEM") ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_${remap}_${res}.nc
 	fi
 	
 fi
