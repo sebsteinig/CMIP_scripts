@@ -32,13 +32,13 @@ fi
 ##########################################################################################
 
 experiment="historical"         # CMIP5 experiments: historical,rcp45; CMIP3 experiments: 20c3m
-var="tos"                       # CMIP variable to process (e.g. tos,tas,pr,psl,...)
+var="tas"                       # CMIP variable to process (e.g. tos,tas,pr,psl,...)
                                 # for full list see: http://cmip-pcmdi.llnl.gov/cmip5/docs/standard_output.pdf
 observations="HadCRUT4"         # HadISST HadSST3 CMAP GPCP HadSLP2 MLD ERSST HadCRUT4 CERES_EBAF NCEP
 period_1=1870-2005              # time period for which the data gets processed
 res=HadCRUT4                    # ERSST, r180x89, r360x180
 remap=remapbil
-actions="1"                     # choose which sections of the script get executed; see list above
+actions="3 4"                     # choose which sections of the script get executed; see list above
 
 ##########################################################################################	
 # choose plots ( 0 = no / 1 = yes )
@@ -161,6 +161,8 @@ fi
 	cd $CMIP_dir/data/CMIP5/$experiment/$realm/$variable       
 	
     mkdir -p $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable
+    mkdir -p $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution
+	rm -f $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution/*       # remove old data
 	
 	model_array=( $(find . -type d -maxdepth 1 -exec printf "{} " \;) )		# create array containing all model names
 
@@ -170,9 +172,9 @@ fi
         
 	done
 	
-	loop_length=$(expr ${#models[*]} - 1)									# loop over all folders without "processed"
+	loop_length=$(expr ${#models[*]} - 1)									
 
-	while [[ $((++i)) -le ${loop_length} ]]; do                            
+	while [[ $((++i)) -le ${loop_length} ]]; do                            # loop over all folders
        
     	cd ${models[i]}
         echo 'processing ' ${models[i]}
@@ -189,8 +191,10 @@ fi
 		
 		if [ $count -eq 1 ]; then
 			ln *.nc processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
+			ln *.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${first_model_year}-${last_model_year}_original_resolution.nc
 		else
 			cdo mergetime *.nc processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
+			cp -p processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${first_model_year}-${last_model_year}_original_resolution.nc
 		fi
 		
 		cd processed
@@ -217,7 +221,7 @@ fi
 				fi
                 ;;
             *)
-            	ensemble_mean_flag=2
+            	ensemble_mean_flag=1
             
             	if [ "$variable" == "psl" ]; then
             	 
@@ -284,7 +288,9 @@ fi
 	
 	cd $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/
 	rm -f ${variable}*mmm*${period_1}*${res}*
-	cdo ensmean ${variable}*${period_1}*${res}* ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_${remap}_${res}.nc	
+	rm -f original_resolution/${variable}*mmm*${period_1}*original_resolution.nc
+	cdo ensmean ${variable}*${period_1}*${res}* ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_${remap}_${res}.nc
+	cdo ensmean original_resolution/${variable}*${period_1}*original_resolution.nc ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_${remap}_original_resolution.nc
 			
 	fi
 	
