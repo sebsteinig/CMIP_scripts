@@ -18,6 +18,9 @@ Parts of the analysis:
 Download the data
 ============
 
+CMIP3:
+============
+
 CMIP5:
 ============
 
@@ -33,4 +36,4 @@ CMIP5:
 				 in this case retrieve the credentials on another machine and copy the ~/.esg/certificates
 				 to your nesh-fe home directory
 - the download should start now and the script will echo in the end whether all files have been downloaded or not
-- if not, rerun wget script and/or add to the wget command in it "--no-check-certificate"
+- if not, rerun wget script and/or add "--no-check-certificate" to the wget command
