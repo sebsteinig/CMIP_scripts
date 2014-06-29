@@ -15,15 +15,22 @@ elif [ $(whoami) = "smomw200" ]; then
 fi
 	
 ##########################################################################################
-
-experiment="20c3m"
+ 
+experiment="20c3m"					# CMIP3 experiments: 20c3m
 var="tas"
+period=1900-1999 					# time period for which the data gets processed
+climatology_period=1980-1999
 remap=remapbil
-res=ERSST
-actions="1"
+res=HadCRUT4
+actions="2"
 
 ##########################################################################################
 
+start_period=${period:0:4}
+end_period=${period:5:9}
+
+start_climatology=${climatology_period:0:4}
+end_climatology=${climatology_period:5:9}
 	
 for variable in $var; do		# loop over all chosen variable
 
@@ -47,10 +54,7 @@ for actid in $actions ; do		# loop over all chosen actions
 
 if [ $actid -eq 1 ];then # download data
 
-    #models="bccr_bcm2_0 cccma_cgcm3_1 cccma_cgcm3_1_t63 cnrm_cm3 csiro_mk3_0 csiro_mk3_5 gfdl_cm2_0 gfdl_cm2_1 giss_aom giss_model_e_h giss_model_e_r iap_fgoals1_0_g ingv_echam4 inmcm3_0 ipsl_cm4 miroc3_2_hires miroc3_2_medres mpi_echam5 mri_cgcm2_3_2a ncar_ccsm3_0 ncar_pcm1 ukmo_hadcm3 ukmo_hadgem1"
-    models="bccr_bcm2_0 cccma_cgcm3_1"
-
-
+    models="bccr_bcm2_0 cccma_cgcm3_1 cccma_cgcm3_1_t63 cnrm_cm3 csiro_mk3_0 csiro_mk3_5 gfdl_cm2_0 gfdl_cm2_1 giss_aom giss_model_e_h giss_model_e_r iap_fgoals1_0_g ingv_echam4 inmcm3_0 ipsl_cm4 miroc3_2_hires miroc3_2_medres mpi_echam5 mri_cgcm2_3_2a ncar_ccsm3_0 ncar_pcm1 ukmo_hadcm3 ukmo_hadgem1"
     mkdir -p $CMIP_dir/data/CMIP3/$experiment/$realm/$variable
 	
     for exp in $models; do
@@ -64,7 +68,43 @@ fi
 
 ##########################################################################################
     
- if [ $actid -eq 2 ];then # create PCMDI climatologies 
+if [ $actid -eq 2 ];then # merge data
+
+	cd $CMIP_dir/data/CMIP3/$experiment/$realm/$variable       
+		
+	model_array=( $(find . -type d -maxdepth 1 -exec printf "{} " \;) )		# create array containing all model names
+
+	for index in ${!model_array[*]}; do	                                                                                                        
+        models[index]=${model_array[index]#./}					# remove "./" from the model names
+		models_upper_case[index]=$(echo ${models[index]} | tr '[:lower:]' '[:upper:]')       
+	done
+	
+	loop_length=$(expr ${#models[*]} - 1)									# loop over all folders
+
+	while [[ $((++i)) -le ${loop_length} ]]; do                                  
+    	cd ${models[i]}
+        echo 'processing ' ${models_upper_case[i]}
+		model=${PWD##*/}
+		cd run1
+		count=$(find . -maxdepth 1 -name '*.nc' | wc -l)
+		
+		if [ $count -eq 1 ]; then
+			mv *.nc dummy.nc
+		else
+			cdo mergetime *.nc dummy.nc
+		fi
+		
+		cdo selyear,${start_period}/${end_period} dummy.nc $CMIP_dir/data/CMIP3/$experiment/$realm/$variable/${variable}_${realm}_${models_upper_case[i]}_${experiment}_CMIP3_r1i1p1_${start_period}-${end_period}.nc
+		rm dummy.nc
+		cd $CMIP_dir/data/CMIP3/$experiment/$realm/$variable
+		rm -r ${models[i]}
+	done
+fi
+
+
+##########################################################################################
+
+ if [ $actid -eq 3 ];then # create PCMDI climatologies 
 
 	cd $CMIP_dir/data/CMIP3/$experiment/$realm/mo/$variable       
 	
@@ -204,7 +244,7 @@ fi
 
 ##########################################################################################
     
- if [ $actid -eq 3 ];then # process data with cdo 
+ if [ $actid -eq 4 ];then # process data with cdo 
 
 	cd $CMIP_dir/data/CMIP3/$experiment/$realm/mo/$variable       
 	
