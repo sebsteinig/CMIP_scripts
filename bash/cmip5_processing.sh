@@ -30,14 +30,15 @@ fi
 	
 ##########################################################################################
 
-experiment="historical"         # CMIP5 experiments: historical,rcp45; CMIP3 experiments: 20c3m
+experiment="historical"            # CMIP5 experiments: historical,rcp45; CMIP3 experiments: 20c3m
 var="rsutcs"                       # CMIP variable to process (e.g. tos,tas,pr,psl,...)
-                                # for full list see: http://cmip-pcmdi.llnl.gov/cmip5/docs/standard_output.pdf
-observations="HadCRUT4"         # HadISST HadSST3 CMAP GPCP HadSLP2 MLD ERSST HadCRUT4 CERES_EBAF NCEP
-period_1=1870-2005              # time period for which the data gets processed
-res=ERSST                    # HadCRUT4, ERSST
+                                   # for full list see: http://cmip-pcmdi.llnl.gov/cmip5/docs/standard_output.pdf
+observations="HadCRUT4"            # HadISST HadSST3 CMAP GPCP HadSLP2 MLD ERSST HadCRUT4 CERES_EBAF NCEP
+period=1870-2005                   # time period for which the data gets processed
+climatology_period=1980-1999
+res=ERSST                          # HadCRUT4, ERSST
 remap=remapbil
-actions="1 2"                     # choose which sections of the script get executed; see list above
+actions="1 2"                      # choose which sections of the script get executed; see list above
 
 ##########################################################################################	
 # choose plots ( 0 = no / 1 = yes )
@@ -51,8 +52,11 @@ plot_change=0
 
 ##########################################################################################
 
-start_1=${period_1:0:4}
-end_1=${period_1:5:9}
+start_period=${period:0:4}
+end_period=${period:5:9}
+
+start_climatology=${period:0:4}
+end_climatology=${period:5:9}
 	
 for variable in $var; do		# loop over all chosen variables
 
@@ -216,8 +220,8 @@ if [ $actid -eq 4 ];then # process data with cdo
 		# further proceeding is dependent of the variable
         case $variable in 
             msftmyz) # MOC streamfunction -> no vertical interpolation between model grids
-				if [ $first_model_year -le ${start_1} ]; then
- 				    cdo  -selyear,${start_1}/${end_1} -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}.nc
+				if [ $first_model_year -le ${start_period} ]; then
+ 				    cdo  -selyear,${start_period}/${end_period} -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}.nc
 				fi
 				
 				rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
@@ -256,26 +260,27 @@ if [ $actid -eq 4 ];then # process data with cdo
             	    rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
             	fi
 				
-				# remap to T42 grid and calculate 1980-1999 climatologies, according to the PCMDI metrics (see IPCC, figure 9.7)
+				# remap to T42 grid and calculate ${start_climatology}-${end_climatology} climatologies, according to the PCMDI metrics (see IPCC, figure 9.7)
 				if [ "$variable" == "zg" ]; then
 					# don't calculate ensemble mean for 4D variable, since they don't get processed (see below)
 					ensemble_mean_flag=0
 					# only consider geopotential height at 500 hPa
-					cdo -${remap},t42grid -ymonmean -selyear,1980/1999 -sellevel,50000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_500_${realm}_${model}_${experiment}_CMIP5_r1i1p1_1980-1999_clim_${remap}_T42.nc
+					cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,50000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_500_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
 				elif [ "$variable" == "ua" ] || [ "$variable" == "va" ] || [ "$variable" == "ta" ]; then 
 					# don't calculate ensemble mean for 4D variable, since they don't get processed (see below
 					ensemble_mean_flag=0
 					# only consider values at 200 and 850 hPa
-					cdo -${remap},t42grid -ymonmean -selyear,1980/1999 -sellevel,85000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_850_${realm}_${model}_${experiment}_CMIP5_r1i1p1_1980-1999_clim_${remap}_T42.nc
-					cdo -${remap},t42grid -ymonmean -selyear,1980/1999 -sellevel,20000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_200_${realm}_${model}_${experiment}_CMIP5_r1i1p1_1980-1999_clim_${remap}_T42.nc
+					cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,85000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_850_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+					cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,20000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_200_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
 				else
-					cdo -${remap},t42grid -ymonmean -selyear,1980/1999 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_1980-1999_clim_${remap}_T42.nc
+					cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
 				fi			
             	
 				# process model data only if it starts before selected period and is not a 4D-variable
-            	if [ $first_model_year -le ${start_1} ] && ( [ "$variable" != "zg" ]  ||  [ "$variable" != "ta" ] || \
+            	if [ $first_model_year -le ${start_period} ] && ( [ "$variable" != "zg" ]  ||  [ "$variable" != "ta" ] || \
 					[ "$variable" != "ua" ] || [ "$variable" != "va" ] ); then 
-					cdo -${remap},${remap_reference} -selyear,${start_1}/${end_1} -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_${remap}_${res}.nc
+					# remap model field to observational data set for comparability; also cut time period selected in the beginning (period)
+					cdo -${remap},${remap_reference} -selyear,${start_period}/${end_period} -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}.nc
            		fi
 				
            		rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc # delete temporal data
@@ -283,7 +288,7 @@ if [ $actid -eq 4 ];then # process data with cdo
 		
 		cd ../..
 		# if model data got processed, move it from data to processed directory
-		if [ -f $CMIP_dir/data/CMIP5/$experiment/$realm/$variable/$model/processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_${remap}_${res}.nc ]; then 
+		if [ -f $CMIP_dir/data/CMIP5/$experiment/$realm/$variable/$model/processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}.nc ]; then 
 			mv ${model}/processed/*.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}; 
 		fi
 		rm -r ${model}/processed
@@ -300,19 +305,19 @@ if [ $actid -eq 4 ];then # process data with cdo
 	
 	if [ ${ensemble_mean_flag} -eq 1 ]; then # remove old ensemble mean and calculate new one
 	    cd $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}/
-	    rm -f ${variable}*mmm*${period_1}*${res}*
+	    rm -f ${variable}*mmm*${period}*${res}*
 		# HadGEM models get excluded, since they only provide data until 200511 -> different number of timesteps than other models
-	    cdo ensmean $(ls ${variable}*${period_1}*${res}* |grep -vi "HadGEM") ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_${remap}_${res}.nc
+	    cdo ensmean $(ls ${variable}*${period}*${res}* |grep -vi "HadGEM") ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}.nc
 		
 		cd $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies
-		rm -f ${variable}*mmm*1980-1999*
+		rm -f ${variable}*mmm*${start_climatology}-${end_climatology}*
 		if [ "$variable" == "zg" ]; then 
-			cdo ensmean ${variable}*500*1980-1999*T42* ${variable}_500_${realm}_mmm_${experiment}_CMIP5_r1i1p1_1980-1999_clim_${remap}_T42.nc	
+			cdo ensmean ${variable}*500*${start_climatology}-${end_climatology}*T42* ${variable}_500_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc	
 		elif [ "$variable" == "ua" ] || [ "$variable" == "va" ] || [ "$variable" == "ta" ]; then 
-			cdo ensmean ${variable}*850*1980-1999*T42* ${variable}_850_${realm}_mmm_${experiment}_CMIP5_r1i1p1_1980-1999_clim_${remap}_T42.nc	
-			cdo ensmean ${variable}*200*1980-1999*T42* ${variable}_200_${realm}_mmm_${experiment}_CMIP5_r1i1p1_1980-1999_clim_${remap}_T42.nc	
+			cdo ensmean ${variable}*850*${start_climatology}-${end_climatology}*T42* ${variable}_850_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc	
+			cdo ensmean ${variable}*200*${start_climatology}-${end_climatology}*T42* ${variable}_200_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc	
 		else
-			cdo ensmean ${variable}*1980-1999*T42* ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_1980-1999_clim_${remap}_T42.nc	
+			cdo ensmean ${variable}*${start_climatology}-${end_climatology}*T42* ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc	
 		fi
 		
 	fi
@@ -329,7 +334,7 @@ if [ $actid -eq 4 ];then # process data with cdo
 	
 	    # go the climatologies and subtract rsut from rsutcs for each model
 		cd $CMIP_dir/processed/$experiment/Amon/rsutcs/climatologies		
-		for i in *1980-1999*.nc; do
+		for i in *${start_climatology}-${end_climatology}*.nc; do
 			j=`echo $i | sed 's/rsutcs/rsut/'`
 			k=`echo $i | sed 's/rsutcs/sw_cre/'`
 			cdo -chname,rsutcs,sw_cre -sub $i $CMIP_dir/processed/$experiment/Amon/rsut/climatologies/$j $CMIP_dir/processed/$experiment/Amon/sw_cre/climatologies/$k
@@ -345,7 +350,7 @@ if [ $actid -eq 4 ];then # process data with cdo
 	
 	    # do the same for the remapped fields
 		cd $CMIP_dir/processed/$experiment/Amon/rsutcs/remapped_to_${res}		
-		for i in *${period_1}*.nc; do
+		for i in *${period}*.nc; do
 			j=`echo $i | sed 's/rsutcs/rsut/'`
 			k=`echo $i | sed 's/rsutcs/sw_cre/'`
 			cdo -chname,rsutcs,sw_cre -sub $i $CMIP_dir/processed/$experiment/Amon/rsut/remapped_to_${res}/$j $CMIP_dir/processed/$experiment/Amon/sw_cre/remapped_to_${res}/$k
@@ -353,13 +358,13 @@ if [ $actid -eq 4 ];then # process data with cdo
 	
 	    # calculate ensemble mean for the climatologies
 		cd $CMIP_dir/processed/$experiment/Amon/sw_cre/climatologies/
-		rm -f *mmm*1980-1999*		
-		cdo ensmean *1980-1999*T42* sw_cre_${realm}_mmm_${experiment}_CMIP5_r1i1p1_1980-1999_clim_${remap}_T42.nc	
+		rm -f *mmm*${start_climatology}-${end_climatology}*		
+		cdo ensmean *${start_climatology}-${end_climatology}*T42* sw_cre_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc	
 	
 	    # calculate ensemble mean for the remapped fields
 		cd $CMIP_dir/processed/$experiment/Amon/sw_cre/remapped_to_${res}/
-		rm -f *mmm*${period_1}*		
-		cdo ensmean *${period_1}*${res}* sw_cre_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_${remap}_${res}.nc	
+		rm -f *mmm*${period}*		
+		cdo ensmean *${period}*${res}* sw_cre_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}.nc	
     fi	
 		
     # do the same as above, but for the long wave cloud radiative effect
@@ -374,7 +379,7 @@ if [ $actid -eq 4 ];then # process data with cdo
 	
 	    # go the climatologies and subtract rlut from rlutcs for each model
 		cd $CMIP_dir/processed/$experiment/Amon/rlutcs/climatologies		
-		for i in *1980-1999*.nc; do
+		for i in *${start_climatology}-${end_climatology}*.nc; do
 			j=`echo $i | sed 's/rlutcs/rlut/'`
 			k=`echo $i | sed 's/rlutcs/lw_cre/'`
 			cdo -chname,rlutcs,lw_cre -sub $i $CMIP_dir/processed/$experiment/Amon/rlut/climatologies/$j $CMIP_dir/processed/$experiment/Amon/lw_cre/climatologies/$k
@@ -390,7 +395,7 @@ if [ $actid -eq 4 ];then # process data with cdo
 	
 	    # do the same for the remapped fields
 		cd $CMIP_dir/processed/$experiment/Amon/rlutcs/remapped_to_${res}		
-		for i in *${period_1}*.nc; do
+		for i in *${period}*.nc; do
 			j=`echo $i | sed 's/rlutcs/rlut/'`
 			k=`echo $i | sed 's/rlutcs/lw_cre/'`
 			cdo -chname,rlutcs,lw_cre -sub $i $CMIP_dir/processed/$experiment/Amon/rlut/remapped_to_${res}/$j $CMIP_dir/processed/$experiment/Amon/lw_cre/remapped_to_${res}/$k
@@ -398,13 +403,13 @@ if [ $actid -eq 4 ];then # process data with cdo
 	
 	    # calculate ensemble mean for the climatologies
 		cd $CMIP_dir/processed/$experiment/Amon/lw_cre/climatologies/
-		rm -f *mmm*1980-1999*		
-		cdo ensmean *1980-1999*T42* lw_cre_${realm}_mmm_${experiment}_CMIP5_r1i1p1_1980-1999_clim_${remap}_T42.nc	
+		rm -f *mmm*${start_climatology}-${end_climatology}*		
+		cdo ensmean *${start_climatology}-${end_climatology}*T42* lw_cre_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc	
 	
 	    # calculate ensemble mean for the remapped fields
 		cd $CMIP_dir/processed/$experiment/Amon/lw_cre/remapped_to_${res}/
-		rm -f *mmm*${period_1}*		
-		cdo ensmean *${period_1}*${res}* lw_cre_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_${remap}_${res}.nc	
+		rm -f *mmm*${period}*		
+		cdo ensmean *${period}*${res}* lw_cre_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}.nc	
     fi
 
 fi
@@ -414,10 +419,9 @@ fi
 if [ $actid -eq 5 ];then # download and process observation data
 
 	for obs in $observations; do
-	
    		mkdir -p $CMIP_dir/data/observations/${obs}
    		cd $CMIP_dir/data/observations/${obs}
-
+	# download the observational data sets; -N option in wget only downloads the data if the timestamp of the remote file is newer than the local one 
 	case $obs in                                                                   
             HadISST) 
                 wget -N http://www.metoffice.gov.uk/hadobs/hadisst/data/HadISST_sst.nc.gz --header="accept-encoding: gzip"
@@ -434,13 +438,15 @@ if [ $actid -eq 5 ];then # download and process observation data
                 cut_flag=1                                            				
                 ;;              
             CMAP)
-				wget -N -O CMAP.pr.mon.mean.nc ftp://ftp.cdc.noaa.gov/Datasets/cmap/enh/precip.mon.mean.nc
+				wget -N ftp://ftp.cdc.noaa.gov/Datasets/cmap/enh/precip.mon.mean.nc
+				mv precip.mon.mean.nc CMAP.pr.mon.mean.nc
 			    cdo -${remap},t42grid -ymonmean -selyear,1980/2005 -selvar,precip CMAP.pr.mon.mean.nc CMAP.pr.mon.mean.1980-2005_clim_${remap}_T42.nc   
 				data="CMAP.pr.mon.mean.nc"
 				cut_flag=2      
 				;;
             GPCP)
-				wget -N -O GPCP.pr.mon.mean.nc ftp://ftp.cdc.noaa.gov/Datasets/gpcp/precip.mon.mean.nc  
+				wget -N ftp://ftp.cdc.noaa.gov/Datasets/gpcp/precip.mon.mean.nc
+				mv precip.mon.mean.nc GPCP.pr.mon.mean.nc
 			    cdo -${remap},t42grid -ymonmean -selyear,1980/2000 -selvar,precip GPCP.pr.mon.mean.nc GPCP.pr.mon.mean.1980-2000_clim_${remap}_T42.nc  
 				;;
             HadSLP2)
@@ -466,36 +472,36 @@ if [ $actid -eq 5 ];then # download and process observation data
 				cdo selvar,toa_cre_sw_mon CERES_EBAF_clim_T42.nc sw_cre_CERES_EBAF_clim_T42.nc
 				cdo selvar,toa_cre_lw_mon CERES_EBAF_clim_T42.nc lw_cre_CERES_EBAF_clim_T42.nc
             	;;
-            NCEP)			
-				download_again=1 # set to 1 to download or update the files again
+            NCEP)							
+            	wget -N ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/surface/air.mon.mean.nc #tas
+				mv air.mon.mean.nc NCEP.tas.mon.mean.nc
+				wget -N ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/pressure/air.mon.mean.nc #ta
+				mv air.mon.mean.nc NCEP.ta.mon.mean.nc
+				wget -N ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/pressure/hgt.mon.mean.nc #zg
+				mv hgt.mon.mean.nc NCEP.zg.mon.mean.nc
+				wget -N ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/pressure/uwnd.mon.mean.nc #ua
+				mv uwnd.mon.mean.nc NCEP.ua.mon.mean.nc
+				wget -N ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/pressure/vwnd.mon.mean.nc #va
+				mv vwnd.mon.mean.nc NCEP.va.mon.mean.nc 
+				wget -N ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/surface_gauss/shtfl.sfc.mon.mean.nc #shtfl
+				mv shtfl.sfc.mon.mean.nc NCEP.shtfl.mon.mean.nc
+				wget -N ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/surface_gauss/lhtfl.sfc.mon.mean.nc #lhtfl
+				mv lhtfl.sfc.mon.mean.nc NCEP.lhtfl.mon.mean.nc
 				
-				if [ ${download_again} -eq 1 ]; then
-					
-            	wget -N -O NCEP.tas.mon.mean.nc ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/surface/air.mon.mean.nc #tas
-				wget -N -O NCEP.ta.mon.mean.nc ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/pressure/air.mon.mean.nc #ta
-				wget -N -O NCEP.zg.mon.mean.nc ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/pressure/hgt.mon.mean.nc #zg
-				wget -N -O NCEP.ua.mon.mean.nc ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/pressure/uwnd.mon.mean.nc #ua
-				wget -N -O NCEP.va.mon.mean.nc ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/pressure/vwnd.mon.mean.nc #va
-				wget -N -O NCEP.shtfl.mon.mean.nc ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/surface_gauss/shtfl.sfc.mon.mean.nc #shtfl
-				wget -N -O NCEP.lhtfl.mon.mean.nc ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/surface_gauss/lhtfl.sfc.mon.mean.nc #lhtfl
-				
-				fi
-				
-				cdo -${remap},t42grid -ymonmean -selyear,1980/2000 -selvar,air NCEP.tas.mon.mean.nc NCEP.tas.mon.mean.1980-2000_clim_${remap}_T42.nc
-				cdo -${remap},t42grid -timmean -selyear,1980/2000 -selvar,air NCEP.tas.mon.mean.nc NCEP_clim.tas.T42.nc
-				cdo -${remap},t42grid -ymonmean -selyear,1980/2000 -sellevel,850 -selvar,air NCEP.ta.mon.mean.nc NCEP.ta_850.mon.mean.1980-2000_clim_${remap}_T42.nc
-				cdo -${remap},t42grid -ymonmean -selyear,1980/2000 -sellevel,200 -selvar,air NCEP.ta.mon.mean.nc NCEP.ta_200.mon.mean.1980-2000_clim_${remap}_T42.nc
-				cdo -${remap},t42grid -ymonmean -selyear,1980/2000 -sellevel,850 -selvar,uwnd NCEP.ua.mon.mean.nc NCEP.ua_850.mon.mean.1980-2000_clim_${remap}_T42.nc
-				cdo -${remap},t42grid -ymonmean -selyear,1980/2000 -sellevel,200 -selvar,uwnd NCEP.ua.mon.mean.nc NCEP.ua_200.mon.mean.1980-2000_clim_${remap}_T42.nc
-				cdo -${remap},t42grid -ymonmean -selyear,1980/2000 -sellevel,850 -selvar,vwnd NCEP.va.mon.mean.nc NCEP.va_850.mon.mean.1980-2000_clim_${remap}_T42.nc
-				cdo -${remap},t42grid -ymonmean -selyear,1980/2000 -sellevel,200 -selvar,vwnd NCEP.va.mon.mean.nc NCEP.va_200.mon.mean.1980-2000_clim_${remap}_T42.nc
-				cdo -${remap},t42grid -ymonmean -selyear,1980/2000 -sellevel,500 -selvar,hgt NCEP.zg.mon.mean.nc NCEP.zg_500.mon.mean.1980-2000_clim_${remap}_T42.nc
-				cdo -${remap},t42grid -timmean -selyear,1980/2000 -sellevel,500 -selvar,hgt NCEP.zg.mon.mean.nc NCEP_clim.zg_500.T42.nc			
-				cdo -${remap},t42grid -ymonmean -selyear,1980/2000 -selvar,shtfl NCEP.shtfl.mon.mean.nc NCEP.shtfl.mon.mean.1980-2000_clim_${remap}_T42.nc
-				cdo -${remap},t42grid -timmean -selyear,1980/2000 -selvar,shtfl NCEP.shtfl.mon.mean.nc NCEP_clim.shtfl.T42.nc
-				cdo -${remap},t42grid -ymonmean -selyear,1980/2000 -selvar,lhtfl NCEP.lhtfl.mon.mean.nc NCEP.lhtfl.mon.mean.1980-2000_clim_${remap}_T42.nc
-				cdo -${remap},t42grid -timmean -selyear,1980/2000 -selvar,lhtfl NCEP.lhtfl.mon.mean.nc NCEP_clim.lhtfl.T42.nc
-
+				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -selvar,air NCEP.tas.mon.mean.nc NCEP.tas.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+				cdo -${remap},t42grid -timmean -selyear,${start_climatology}/${end_climatology} -selvar,air NCEP.tas.mon.mean.nc NCEP_clim.tas.T42.nc
+				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,850 -selvar,air NCEP.ta.mon.mean.nc NCEP.ta_850.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,200 -selvar,air NCEP.ta.mon.mean.nc NCEP.ta_200.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,850 -selvar,uwnd NCEP.ua.mon.mean.nc NCEP.ua_850.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,200 -selvar,uwnd NCEP.ua.mon.mean.nc NCEP.ua_200.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,850 -selvar,vwnd NCEP.va.mon.mean.nc NCEP.va_850.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,200 -selvar,vwnd NCEP.va.mon.mean.nc NCEP.va_200.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,500 -selvar,hgt NCEP.zg.mon.mean.nc NCEP.zg_500.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+				cdo -${remap},t42grid -timmean -selyear,${start_climatology}/${end_climatology} -sellevel,500 -selvar,hgt NCEP.zg.mon.mean.nc NCEP_clim.zg_500.T42.nc			
+				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -selvar,shtfl NCEP.shtfl.mon.mean.nc NCEP.shtfl.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+				cdo -${remap},t42grid -timmean -selyear,${start_climatology}/${end_climatology} -selvar,shtfl NCEP.shtfl.mon.mean.nc NCEP_clim.shtfl.T42.nc
+				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -selvar,lhtfl NCEP.lhtfl.mon.mean.nc NCEP.lhtfl.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+				cdo -${remap},t42grid -timmean -selyear,${start_climatology}/${end_climatology} -selvar,lhtfl NCEP.lhtfl.mon.mean.nc NCEP_clim.lhtfl.T42.nc
             	;;
              HadCRUT4)
             	wget -N http://www.cru.uea.ac.uk/cru/data/temperature/HadCRUT.4.2.0.0.median.nc 
@@ -503,33 +509,25 @@ if [ $actid -eq 5 ];then # download and process observation data
             	cut_flag=1     	
             esac
 
+	# choose further processing based on cut_flag
 	if [ ${cut_flag} -eq 1 ]; then
-
-	cdo -selyear,${start_1}/${end_1} -selgrid,1 $data ${obs}_${start_1}-${end_1}.nc
-	
-		if [ "${obs}" == "HadISST" ]; then
-			
-		cdo -${remap},$CMIP_dir/data/observations/${res}/ersstv3b.mnmean.nc ${obs}_${start_1}-${end_1}.nc ${obs}_${start_1}-${end_1}_${remap}_${res}.nc
-			
+	    # process for whole period 
+	    cdo -selyear,${start_period}/${end_period} -selgrid,1 $data ${obs}_${start_period}-${end_period}.nc	
+		if [ "${obs}" == "HadISST" ]; then			
+		    cdo -${remap},${remap_reference} ${obs}_${start_period}-${end_period}.nc ${obs}_${start_period}-${end_period}_${remap}_${res}.nc		
 		fi
-
 	fi
-
 	if [ ${cut_flag} -eq 2 ]; then
-
-	cdo -${remap},$CMIP_dir/data/observations/${res}/ersstv3b.mnmean.nc -selyear,1979/${end_1} -selgrid,1 $data ${obs}_1979-${end_1}_${remap}_${res}.nc
-	
+	    # process only limited period for precipitation observations
+	    cdo -${remap},${remap_reference} -selyear,1979/${end_period} -selgrid,1 $data ${obs}_1979-${end_period}_${remap}_${res}.nc	
 	fi
 	
 	if [ ${cut_flag} -eq 3 ]; then
-	
-	cdo -${remap},$CMIP_dir/data/observations/${res}/ersstv3b.mnmean.nc $data ${obs}_climatology_${remap}_${res}.nc
-	
-	fi	
-	
+		# process mixed layer depth climatologies
+	    cdo -${remap},${remap_reference} $data ${obs}_climatology_${remap}_${res}.nc	
+	fi		
 	unset data
-	unset cut_flag
-	
+	unset cut_flag	
 	done
 
 fi
@@ -606,7 +604,7 @@ fi
     
 if [ $actid -eq 7 ];then # calculate global means and correlations
 	
-number_of_years=$((end_1 - start_1))
+number_of_years=$((end_period - start_period))
 number_of_decades=$((number_of_years/10))
 
 if [ $((number_of_decades*10)) == $((number_of_years)) ]; then # check if number of years is a multiple of 10
@@ -626,17 +624,17 @@ if [ ! -e trends ]; then mkdir -p trends; fi
 
 if [ "$variable" == "tos" ]; then # process tos observations
 	
-	cdo fldmean $CMIP_dir/data/observations/ERSST/ERSST_${start_1}-${end_1}.nc gm/ERSST_gm_${start_1}-${end_1}.nc
-	cdo fldmean $CMIP_dir/data/observations/HadISST/HadISST_${start_1}-${end_1}.nc gm/HadISST_gm_${start_1}-${end_1}.nc
-	cdo sub $CMIP_dir/data/observations/ERSST/ERSST_${start_1}-${end_1}.nc -enlarge,$CMIP_dir/data/observations/ERSST/ERSST_${start_1}-${end_1}.nc gm/ERSST_gm_${start_1}-${end_1}.nc gm_removed/ERSST_gm_removed_${start_1}-${end_1}.nc
-	cdo sub $CMIP_dir/data/observations/HadISST/HadISST_${start_1}-${end_1}_${remap}_${res}.nc -enlarge,$CMIP_dir/data/observations/HadISST/HadISST_${start_1}-${end_1}_${remap}_${res}.nc gm/HadISST_gm_${start_1}-${end_1}.nc gm_removed/HadISST_gm_removed_${start_1}-${end_1}.nc
-	cdo ymonmean gm_removed/ERSST_gm_removed_${start_1}-${end_1}.nc gm_removed/ERSST_climatology_${start_1}-${end_1}.nc
-	cdo ymonmean gm_removed/HadISST_gm_removed_${start_1}-${end_1}.nc gm_removed/HadISST_climatology_${start_1}-${end_1}.nc
+	cdo fldmean $CMIP_dir/data/observations/ERSST/ERSST_${start_period}-${end_period}.nc gm/ERSST_gm_${start_period}-${end_period}.nc
+	cdo fldmean $CMIP_dir/data/observations/HadISST/HadISST_${start_period}-${end_period}.nc gm/HadISST_gm_${start_period}-${end_period}.nc
+	cdo sub $CMIP_dir/data/observations/ERSST/ERSST_${start_period}-${end_period}.nc -enlarge,$CMIP_dir/data/observations/ERSST/ERSST_${start_period}-${end_period}.nc gm/ERSST_gm_${start_period}-${end_period}.nc gm_removed/ERSST_gm_removed_${start_period}-${end_period}.nc
+	cdo sub $CMIP_dir/data/observations/HadISST/HadISST_${start_period}-${end_period}_${remap}_${res}.nc -enlarge,$CMIP_dir/data/observations/HadISST/HadISST_${start_period}-${end_period}_${remap}_${res}.nc gm/HadISST_gm_${start_period}-${end_period}.nc gm_removed/HadISST_gm_removed_${start_period}-${end_period}.nc
+	cdo ymonmean gm_removed/ERSST_gm_removed_${start_period}-${end_period}.nc gm_removed/ERSST_climatology_${start_period}-${end_period}.nc
+	cdo ymonmean gm_removed/HadISST_gm_removed_${start_period}-${end_period}.nc gm_removed/HadISST_climatology_${start_period}-${end_period}.nc
 	
 	decade=1
 	while [ $decade -le ${number_of_decades} ]; do
 		echo $decade
-		first_year=$((start_1 + (decade-1)*10))
+		first_year=$((start_period + (decade-1)*10))
 		if [ $decade -lt ${number_of_decades} ]; then
 			last_year=$((first_year + 9))
 		else
@@ -650,13 +648,13 @@ if [ "$variable" == "tos" ]; then # process tos observations
 		for data_set in ${obs_data} ; do
 		
 			if [ $decade -eq 1 ]; then
-				cdo -trend -yearmean -selyear,${first_year}/${end_1} -selvar,sst gm/${data_set}_gm_${start_1}-${end_1}.nc a.nc trends/${data_set}_gm_decadal_trends_${start_1}-${end_1}.nc
+				cdo -trend -yearmean -selyear,${first_year}/${end_period} -selvar,sst gm/${data_set}_gm_${start_period}-${end_period}.nc a.nc trends/${data_set}_gm_decadal_trends_${start_period}-${end_period}.nc
 				rm a.nc
 			else
-				cdo -trend -yearmean -selyear,${first_year}/${end_1} -selvar,sst gm/${data_set}_gm_${start_1}-${end_1}.nc a.nc trends/${data_set}_gm_trends_${first_year}-${end_1}.nc
-				cdo cat trends/${data_set}_gm_trends_${first_year}-${end_1}.nc trends/${data_set}_gm_decadal_trends_${start_1}-${end_1}.nc
+				cdo -trend -yearmean -selyear,${first_year}/${end_period} -selvar,sst gm/${data_set}_gm_${start_period}-${end_period}.nc a.nc trends/${data_set}_gm_trends_${first_year}-${end_period}.nc
+				cdo cat trends/${data_set}_gm_trends_${first_year}-${end_period}.nc trends/${data_set}_gm_decadal_trends_${start_period}-${end_period}.nc
 				rm a.nc
-				rm trends/${data_set}_gm_trends_${first_year}-${end_1}.nc
+				rm trends/${data_set}_gm_trends_${first_year}-${end_period}.nc
 			fi
 		
 		done
@@ -681,14 +679,14 @@ for data_set in ${obs_data} ; do
 		
 		fi
 	
-		cdo fldmean ${model_file} gm/${variable}_gm_${start_1}-${end_1}_${model_name}_${remap}_${res}.nc
-		cdo sub ${model_file} -enlarge,${model_file} gm/${variable}_gm_${start_1}-${end_1}_${model_name}_${remap}_${res}.nc gm_removed/${variable}_gm_removed_${start_1}-${end_1}_${model_name}_${remap}_${res}.nc
-		cdo ymonmean gm_removed/${variable}_gm_removed_${start_1}-${end_1}_${model_name}_${remap}_${res}.nc gm_removed/${variable}_climatology_${start_1}-${end_1}_${model_name}_${remap}_${res}.nc
+		cdo fldmean ${model_file} gm/${variable}_gm_${start_period}-${end_period}_${model_name}_${remap}_${res}.nc
+		cdo sub ${model_file} -enlarge,${model_file} gm/${variable}_gm_${start_period}-${end_period}_${model_name}_${remap}_${res}.nc gm_removed/${variable}_gm_removed_${start_period}-${end_period}_${model_name}_${remap}_${res}.nc
+		cdo ymonmean gm_removed/${variable}_gm_removed_${start_period}-${end_period}_${model_name}_${remap}_${res}.nc gm_removed/${variable}_climatology_${start_period}-${end_period}_${model_name}_${remap}_${res}.nc
 	
 		decade=1
 		while [ $decade -le ${number_of_decades} ]; do
 			echo $decade
-			first_year=$((start_1 + (decade-1)*10))
+			first_year=$((start_period + (decade-1)*10))
 			if [ $decade -lt ${number_of_decades} ]; then
 				last_year=$((first_year + 9))
 			else
@@ -698,38 +696,38 @@ for data_set in ${obs_data} ; do
 			echo ${last_year}
 		
 			if [ $decade -eq 1 ]; then
-				cdo -trend -yearmean -selyear,${first_year}/${end_1} -selvar,${variable} gm/${variable}_gm_${start_1}-${end_1}_${model_name}_${remap}_${res}.nc a.nc trends/${variable}_gm_decadal_trends_${start_1}-${end_1}_${model_name}_${remap}_${res}.nc
+				cdo -trend -yearmean -selyear,${first_year}/${end_period} -selvar,${variable} gm/${variable}_gm_${start_period}-${end_period}_${model_name}_${remap}_${res}.nc a.nc trends/${variable}_gm_decadal_trends_${start_period}-${end_period}_${model_name}_${remap}_${res}.nc
 				rm a.nc
 				
-				cdo -timmean -ymonsub -selyear,${first_year}/${last_year} gm_removed/${data_set}_gm_removed_${start_1}-${end_1}.nc gm_removed/${data_set}_climatology_${start_1}-${end_1}.nc gm_removed/${data_set}_gm_removed_${start_1}-${end_1}_decadal_patterns.nc 
-				cdo -timmean -ymonsub -selyear,${first_year}/${last_year} gm_removed/${variable}_gm_removed_${start_1}-${end_1}_${model_name}_${remap}_${res}.nc gm_removed/${variable}_climatology_${start_1}-${end_1}_${model_name}_${remap}_${res}.nc gm_removed/${variable}_gm_removed_${start_1}-${end_1}_decadal_patterns_${model_name}_${remap}_${res}.nc 
+				cdo -timmean -ymonsub -selyear,${first_year}/${last_year} gm_removed/${data_set}_gm_removed_${start_period}-${end_period}.nc gm_removed/${data_set}_climatology_${start_period}-${end_period}.nc gm_removed/${data_set}_gm_removed_${start_period}-${end_period}_decadal_patterns.nc 
+				cdo -timmean -ymonsub -selyear,${first_year}/${last_year} gm_removed/${variable}_gm_removed_${start_period}-${end_period}_${model_name}_${remap}_${res}.nc gm_removed/${variable}_climatology_${start_period}-${end_period}_${model_name}_${remap}_${res}.nc gm_removed/${variable}_gm_removed_${start_period}-${end_period}_decadal_patterns_${model_name}_${remap}_${res}.nc 
 			
-				cdo -f nc -fldcor gm_removed/${data_set}_gm_removed_${start_1}-${end_1}_decadal_patterns.nc gm_removed/${variable}_gm_removed_${start_1}-${end_1}_decadal_patterns_${model_name}_${remap}_${res}.nc correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_1}-${end_1}_${model_name}_${remap}_${res}_90.nc
-				cdo -f nc -fldcor -sellonlatbox,0,360,-70,70 gm_removed/${data_set}_gm_removed_${start_1}-${end_1}_decadal_patterns.nc -sellonlatbox,0,360,-70,70 gm_removed/${variable}_gm_removed_${start_1}-${end_1}_decadal_patterns_${model_name}_${remap}_${res}.nc correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_1}-${end_1}_${model_name}_${remap}_${res}_70.nc
-				cdo -f nc -fldcor -sellonlatbox,0,360,0,90 gm_removed/${data_set}_gm_removed_${start_1}-${end_1}_decadal_patterns.nc -sellonlatbox,0,360,0,90 gm_removed/${variable}_gm_removed_${start_1}-${end_1}_decadal_patterns_${model_name}_${remap}_${res}.nc correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_1}-${end_1}_${model_name}_${remap}_${res}_NH.nc
-				cdo -f nc -fldcor -sellonlatbox,0,360,-90,0 gm_removed/${data_set}_gm_removed_${start_1}-${end_1}_decadal_patterns.nc -sellonlatbox,0,360,-90,0 gm_removed/${variable}_gm_removed_${start_1}-${end_1}_decadal_patterns_${model_name}_${remap}_${res}.nc correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_1}-${end_1}_${model_name}_${remap}_${res}_SH.nc
+				cdo -f nc -fldcor gm_removed/${data_set}_gm_removed_${start_period}-${end_period}_decadal_patterns.nc gm_removed/${variable}_gm_removed_${start_period}-${end_period}_decadal_patterns_${model_name}_${remap}_${res}.nc correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_period}-${end_period}_${model_name}_${remap}_${res}_90.nc
+				cdo -f nc -fldcor -sellonlatbox,0,360,-70,70 gm_removed/${data_set}_gm_removed_${start_period}-${end_period}_decadal_patterns.nc -sellonlatbox,0,360,-70,70 gm_removed/${variable}_gm_removed_${start_period}-${end_period}_decadal_patterns_${model_name}_${remap}_${res}.nc correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_period}-${end_period}_${model_name}_${remap}_${res}_70.nc
+				cdo -f nc -fldcor -sellonlatbox,0,360,0,90 gm_removed/${data_set}_gm_removed_${start_period}-${end_period}_decadal_patterns.nc -sellonlatbox,0,360,0,90 gm_removed/${variable}_gm_removed_${start_period}-${end_period}_decadal_patterns_${model_name}_${remap}_${res}.nc correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_period}-${end_period}_${model_name}_${remap}_${res}_NH.nc
+				cdo -f nc -fldcor -sellonlatbox,0,360,-90,0 gm_removed/${data_set}_gm_removed_${start_period}-${end_period}_decadal_patterns.nc -sellonlatbox,0,360,-90,0 gm_removed/${variable}_gm_removed_${start_period}-${end_period}_decadal_patterns_${model_name}_${remap}_${res}.nc correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_period}-${end_period}_${model_name}_${remap}_${res}_SH.nc
 			
 			else
-				cdo -trend -yearmean -selyear,${first_year}/${end_1} -selvar,${variable} gm/${variable}_gm_${start_1}-${end_1}_${model_name}_${remap}_${res}.nc a.nc trends/${variable}_gm_trends_${first_year}-${end_1}_${model_name}_${remap}_${res}.nc
+				cdo -trend -yearmean -selyear,${first_year}/${end_period} -selvar,${variable} gm/${variable}_gm_${start_period}-${end_period}_${model_name}_${remap}_${res}.nc a.nc trends/${variable}_gm_trends_${first_year}-${end_period}_${model_name}_${remap}_${res}.nc
 									
-				cdo -timmean -ymonsub -selyear,${first_year}/${last_year} gm_removed/${data_set}_gm_removed_${start_1}-${end_1}.nc gm_removed/${data_set}_climatology_${start_1}-${end_1}.nc gm_removed/${data_set}_gm_removed_${first_year}-${last_year}_decadal_patterns.nc 
-				cdo -timmean -ymonsub -selyear,${first_year}/${last_year} gm_removed/${variable}_gm_removed_${start_1}-${end_1}_${model_name}_${remap}_${res}.nc gm_removed/${variable}_climatology_${start_1}-${end_1}_${model_name}_${remap}_${res}.nc gm_removed/${variable}_gm_removed_${first_year}-${last_year}_decadal_patterns_${model_name}_${remap}_${res}.nc 
+				cdo -timmean -ymonsub -selyear,${first_year}/${last_year} gm_removed/${data_set}_gm_removed_${start_period}-${end_period}.nc gm_removed/${data_set}_climatology_${start_period}-${end_period}.nc gm_removed/${data_set}_gm_removed_${first_year}-${last_year}_decadal_patterns.nc 
+				cdo -timmean -ymonsub -selyear,${first_year}/${last_year} gm_removed/${variable}_gm_removed_${start_period}-${end_period}_${model_name}_${remap}_${res}.nc gm_removed/${variable}_climatology_${start_period}-${end_period}_${model_name}_${remap}_${res}.nc gm_removed/${variable}_gm_removed_${first_year}-${last_year}_decadal_patterns_${model_name}_${remap}_${res}.nc 
 			
 				cdo -f nc -fldcor gm_removed/${data_set}_gm_removed_${first_year}-${last_year}_decadal_patterns.nc gm_removed/${variable}_gm_removed_${first_year}-${last_year}_decadal_patterns_${model_name}_${remap}_${res}.nc correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${first_year}-${last_year}_${model_name}_${remap}_${res}_90.nc
 				cdo -f nc -fldcor -sellonlatbox,0,360,-70,70 gm_removed/${data_set}_gm_removed_${first_year}-${last_year}_decadal_patterns.nc -sellonlatbox,0,360,-70,70 gm_removed/${variable}_gm_removed_${first_year}-${last_year}_decadal_patterns_${model_name}_${remap}_${res}.nc correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${first_year}-${last_year}_${model_name}_${remap}_${res}_70.nc
 				cdo -f nc -fldcor -sellonlatbox,0,360,-0,90 gm_removed/${data_set}_gm_removed_${first_year}-${last_year}_decadal_patterns.nc -sellonlatbox,0,360,0,90 gm_removed/${variable}_gm_removed_${first_year}-${last_year}_decadal_patterns_${model_name}_${remap}_${res}.nc correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${first_year}-${last_year}_${model_name}_${remap}_${res}_NH.nc
 				cdo -f nc -fldcor -sellonlatbox,0,360,-90,0 gm_removed/${data_set}_gm_removed_${first_year}-${last_year}_decadal_patterns.nc -sellonlatbox,0,360,-90,0 gm_removed/${variable}_gm_removed_${first_year}-${last_year}_decadal_patterns_${model_name}_${remap}_${res}.nc correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${first_year}-${last_year}_${model_name}_${remap}_${res}_SH.nc
 
-				cdo cat trends/${variable}_gm_trends_${first_year}-${end_1}_${model_name}_${remap}_${res}.nc trends/${variable}_gm_decadal_trends_${start_1}-${end_1}_${model_name}_${remap}_${res}.nc
-				cdo cat gm_removed/${data_set}_gm_removed_${first_year}-${last_year}_decadal_patterns.nc gm_removed/${data_set}_gm_removed_${start_1}-${end_1}_decadal_patterns.nc 
-				cdo cat gm_removed/${variable}_gm_removed_${first_year}-${last_year}_decadal_patterns_${model_name}_${remap}_${res}.nc gm_removed/${variable}_gm_removed_${start_1}-${end_1}_decadal_patterns_${model_name}_${remap}_${res}.nc 			
-				cdo cat correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${first_year}-${last_year}_${model_name}_${remap}_${res}_70.nc correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_1}-${end_1}_${model_name}_${remap}_${res}_70.nc
-				cdo cat correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${first_year}-${last_year}_${model_name}_${remap}_${res}_90.nc correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_1}-${end_1}_${model_name}_${remap}_${res}_90.nc
-				cdo cat correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${first_year}-${last_year}_${model_name}_${remap}_${res}_NH.nc correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_1}-${end_1}_${model_name}_${remap}_${res}_NH.nc
-				cdo cat correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${first_year}-${last_year}_${model_name}_${remap}_${res}_SH.nc correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_1}-${end_1}_${model_name}_${remap}_${res}_SH.nc
+				cdo cat trends/${variable}_gm_trends_${first_year}-${end_period}_${model_name}_${remap}_${res}.nc trends/${variable}_gm_decadal_trends_${start_period}-${end_period}_${model_name}_${remap}_${res}.nc
+				cdo cat gm_removed/${data_set}_gm_removed_${first_year}-${last_year}_decadal_patterns.nc gm_removed/${data_set}_gm_removed_${start_period}-${end_period}_decadal_patterns.nc 
+				cdo cat gm_removed/${variable}_gm_removed_${first_year}-${last_year}_decadal_patterns_${model_name}_${remap}_${res}.nc gm_removed/${variable}_gm_removed_${start_period}-${end_period}_decadal_patterns_${model_name}_${remap}_${res}.nc 			
+				cdo cat correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${first_year}-${last_year}_${model_name}_${remap}_${res}_70.nc correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_period}-${end_period}_${model_name}_${remap}_${res}_70.nc
+				cdo cat correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${first_year}-${last_year}_${model_name}_${remap}_${res}_90.nc correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_period}-${end_period}_${model_name}_${remap}_${res}_90.nc
+				cdo cat correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${first_year}-${last_year}_${model_name}_${remap}_${res}_NH.nc correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_period}-${end_period}_${model_name}_${remap}_${res}_NH.nc
+				cdo cat correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${first_year}-${last_year}_${model_name}_${remap}_${res}_SH.nc correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_period}-${end_period}_${model_name}_${remap}_${res}_SH.nc
 		
 				rm a.nc
-				rm trends/${variable}_gm_trends_${first_year}-${end_1}_${model_name}_${remap}_${res}.nc
+				rm trends/${variable}_gm_trends_${first_year}-${end_period}_${model_name}_${remap}_${res}.nc
 				rm gm_removed/${data_set}_gm_removed_${first_year}-${last_year}_decadal_patterns.nc 
 				rm gm_removed/${variable}_gm_removed_${first_year}-${last_year}_decadal_patterns_${model_name}_${remap}_${res}.nc 
 				rm correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${first_year}-${last_year}_${model_name}_${remap}_${res}_70.nc
