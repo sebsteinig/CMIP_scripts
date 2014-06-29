@@ -7,6 +7,7 @@ Collection of bash and NCL scripts for CMIP3/5 data
 CMIP3/CMIP5 Data Analysis - Documentation
 
 Parts of the analysis:
+============
 
 - Download the data
 - surface plots and biases against observations
@@ -15,8 +16,10 @@ Parts of the analysis:
 - Taylor-diagrams
 
 Download the data
+============
 
 CMIP5:
+============
 
 - Open “cmip5_processing.sh” under “scripts/“
 - sepcify: “experiment”, “var”, “actions” (1 and 2)
