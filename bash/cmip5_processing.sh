@@ -30,15 +30,15 @@ fi
 	
 ##########################################################################################
 
-experiment="historical"            # CMIP5 experiments: historical,rcp45; CMIP3 experiments: 20c3m
-var="rsut rlut rlutcs"                       # CMIP variable to process (e.g. tos,tas,pr,psl,...)
-                                   # for full list see: http://cmip-pcmdi.llnl.gov/cmip5/docs/standard_output.pdf
-observations="NCEP"            # HadISST HadSST3 CMAP GPCP HadSLP2 MLD ERSST HadCRUT4 CERES_EBAF NCEP
-period=1870-2005                   # time period for which the data gets processed
+experiment="historical"				# CMIP5 experiments: historical,rcp45
+var="rsut rlut rlutcs"				# CMIP variable to process (e.g. tos,tas,pr,psl,...)
+									# for full list see: http://cmip-pcmdi.llnl.gov/cmip5/docs/standard_output.pdf
+observations="NCEP"					# HadISST HadSST3 CMAP GPCP HadSLP2 MLD ERSST HadCRUT4 CERES_EBAF NCEP
+period=1870-2005					# time period for which the data gets processed
 climatology_period=1980-1999
-res=ERSST                          # HadCRUT4, ERSST
+res=ERSST  							# HadCRUT4, ERSST
 remap=remapbil
-actions="1 2"                      # choose which sections of the script get executed; see list above
+actions="1 2" 						# choose which sections of the script get executed; see list above
 
 ##########################################################################################	
 # choose plots ( 0 = no / 1 = yes )
