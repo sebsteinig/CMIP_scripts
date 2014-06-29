@@ -36,7 +36,7 @@ var="tas"                       # CMIP variable to process (e.g. tos,tas,pr,psl,
                                 # for full list see: http://cmip-pcmdi.llnl.gov/cmip5/docs/standard_output.pdf
 observations="HadCRUT4"         # HadISST HadSST3 CMAP GPCP HadSLP2 MLD ERSST HadCRUT4 CERES_EBAF NCEP
 period_1=1870-2005              # time period for which the data gets processed
-res=HadCRUT4                    # ERSST, r180x89, r360x180
+res=ERSST                    # HadCRUT4, ERSST
 remap=remapbil
 actions="3 4"                     # choose which sections of the script get executed; see list above
 
@@ -57,6 +57,7 @@ end_1=${period_1:5:9}
 	
 for variable in $var; do		# loop over all chosen variables
 
+# select according realm (atmosphere or ocean variable) for chosen variable
 case $variable in                                                                   
             tos|zos|mlotst|zosga|zossga|zostoga|msftmyz)   
                 realm=Omon; cmor_table=ocean                                                  				
@@ -66,6 +67,18 @@ case $variable in
 				;;
             *)
             	echo unknown variable; break
+esac
+
+# select reference field to which the data should get remapped to
+case $res in                                                                   
+            HadCRUT4)   
+                remap_reference=$CMIP_dir/data/observations/${res}/HadCRUT4_1870-2005.nc                                               				
+                ;;
+            ERSST)
+				remap_reference=$CMIP_dir/data/observations/${res}/ERSST_1870-2005.nc            
+				;;
+            *)
+            	echo unknown remap reference; break
 esac
 
 for actid in $actions ; do		# loop over all chosen actions
@@ -263,7 +276,7 @@ if [ $actid -eq 4 ];then # process data with cdo
 				# process model data only if it starts before selected period and is not a 4D-variable
             	if [ $first_model_year -le ${start_1} ] && ( [ "$variable" != "zg" ]  ||  [ "$variable" != "ta" ] || \
 					[ "$variable" != "ua" ] || [ "$variable" != "va" ] ); then 
-					cdo -${remap},$CMIP_dir/data/observations/${res}/HadCRUT4_1870-2005.nc -selyear,${start_1}/${end_1} -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_${remap}_${res}.nc
+					cdo -${remap},${remap_reference} -selyear,${start_1}/${end_1} -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_1}-${end_1}_${remap}_${res}.nc
            		fi
 				
            		rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc # delete temporal data
