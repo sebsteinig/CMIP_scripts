@@ -21,7 +21,7 @@ set -a
 	
 	
 if [ $(whoami) = "stein" ]; then            # check for system/user and adapt CMIP path  
-    CMIP_dir="/Volumes/HiWi_data/CMIP"
+    CMIP_dir="/Users/stein/Documents/Uni/Master/HiWi/CMIP"
     echo "user: stein"
 elif [ $(whoami) = "smomw200" ]; then
     CMIP_dir="/gfs/scratch/smomw200/CMIP"
@@ -165,6 +165,8 @@ if [ $actid -eq 4 ];then # process data with cdo
     mkdir -p $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies
 	rm -f $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution/*      # remove old data
 	rm -f $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}/*       # remove old data
+	rm -f $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/*       # remove old data
+	
 	
 	model_array=( $(find . -type d -maxdepth 1 -exec printf "{} " \;) )		# create array containing all model names
 
@@ -242,9 +244,16 @@ if [ $actid -eq 4 ];then # process data with cdo
             	    rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
             	fi
 				
-				if [ "$variable" == "zg" ]; then 
+				# remap to T42 grid and calculate 1980-1999 climatologies, according to the PCMDI metrics (see IPCC, figure 9.7)
+				if [ "$variable" == "zg" ]; then
+					# don't calculate ensemble mean for 4D variable, since they don't get processed (see below)
+					ensemble_mean_flag=0
+					# only consider geopotential height at 500 hPa
 					cdo -${remap},t42grid -ymonmean -selyear,1980/1999 -sellevel,50000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_500_${realm}_${model}_${experiment}_CMIP5_r1i1p1_1980-1999_clim_${remap}_T42.nc
 				elif [ "$variable" == "ua" ] || [ "$variable" == "va" ] || [ "$variable" == "ta" ]; then 
+					# don't calculate ensemble mean for 4D variable, since they don't get processed (see below
+					ensemble_mean_flag=0
+					# only consider values at 200 and 850 hPa
 					cdo -${remap},t42grid -ymonmean -selyear,1980/1999 -sellevel,85000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_850_${realm}_${model}_${experiment}_CMIP5_r1i1p1_1980-1999_clim_${remap}_T42.nc
 					cdo -${remap},t42grid -ymonmean -selyear,1980/1999 -sellevel,20000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_200_${realm}_${model}_${experiment}_CMIP5_r1i1p1_1980-1999_clim_${remap}_T42.nc
 				else
@@ -270,8 +279,9 @@ if [ $actid -eq 4 ];then # process data with cdo
 		mv $CMIP_dir/data/CMIP5/$experiment/$realm/$variable/$model/*.nc $CMIP_dir/data/CMIP5/$experiment/$realm/$variable
 		rm -r $CMIP_dir/data/CMIP5/$experiment/$realm/$variable/$model/
 		cd $CMIP_dir/data/CMIP5/$experiment/$realm/$variable
+		# if original data consists only of 1 file (1850-2005), create symbolic link to it in the original resolution folder to save disk space
 		if [ $count -eq 1 ]; then
-			ln -s *${model}*.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${first_model_year}-${last_model_year}_original_resolution.nc
+			ln -s $CMIP_dir/data/CMIP5/$experiment/$realm/$variable/*${model}*.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${first_model_year}-${last_model_year}_original_resolution.nc
 	    fi
 		unset models[i]		
 	done
