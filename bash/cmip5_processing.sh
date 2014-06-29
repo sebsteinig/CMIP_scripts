@@ -31,9 +31,9 @@ fi
 ##########################################################################################
 
 experiment="historical"            # CMIP5 experiments: historical,rcp45; CMIP3 experiments: 20c3m
-var="rsutcs"                       # CMIP variable to process (e.g. tos,tas,pr,psl,...)
+var="rsut rlut rlutcs"                       # CMIP variable to process (e.g. tos,tas,pr,psl,...)
                                    # for full list see: http://cmip-pcmdi.llnl.gov/cmip5/docs/standard_output.pdf
-observations="HadCRUT4"            # HadISST HadSST3 CMAP GPCP HadSLP2 MLD ERSST HadCRUT4 CERES_EBAF NCEP
+observations="NCEP"            # HadISST HadSST3 CMAP GPCP HadSLP2 MLD ERSST HadCRUT4 CERES_EBAF NCEP
 period=1870-2005                   # time period for which the data gets processed
 climatology_period=1980-1999
 res=ERSST                          # HadCRUT4, ERSST
@@ -55,8 +55,8 @@ plot_change=0
 start_period=${period:0:4}
 end_period=${period:5:9}
 
-start_climatology=${period:0:4}
-end_climatology=${period:5:9}
+start_climatology=${climatology_period:0:4}
+end_climatology=${climatology_period:5:9}
 	
 for variable in $var; do		# loop over all chosen variables
 
@@ -472,37 +472,31 @@ if [ $actid -eq 5 ];then # download and process observation data
 				cdo selvar,toa_cre_sw_mon CERES_EBAF_clim_T42.nc sw_cre_CERES_EBAF_clim_T42.nc
 				cdo selvar,toa_cre_lw_mon CERES_EBAF_clim_T42.nc lw_cre_CERES_EBAF_clim_T42.nc
             	;;
-            NCEP)							
-            	wget -N ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/surface/air.mon.mean.nc #tas
-				mv air.mon.mean.nc NCEP.tas.mon.mean.nc
+            NCEP)
+            	wget -N ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/surface/air.sig995.mon.mean.nc #tas
 				wget -N ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/pressure/air.mon.mean.nc #ta
-				mv air.mon.mean.nc NCEP.ta.mon.mean.nc
 				wget -N ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/pressure/hgt.mon.mean.nc #zg
-				mv hgt.mon.mean.nc NCEP.zg.mon.mean.nc
 				wget -N ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/pressure/uwnd.mon.mean.nc #ua
-				mv uwnd.mon.mean.nc NCEP.ua.mon.mean.nc
 				wget -N ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/pressure/vwnd.mon.mean.nc #va
-				mv vwnd.mon.mean.nc NCEP.va.mon.mean.nc 
 				wget -N ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/surface_gauss/shtfl.sfc.mon.mean.nc #shtfl
-				mv shtfl.sfc.mon.mean.nc NCEP.shtfl.mon.mean.nc
 				wget -N ftp://ftp.cdc.noaa.gov/Datasets/ncep.reanalysis.derived/surface_gauss/lhtfl.sfc.mon.mean.nc #lhtfl
-				mv lhtfl.sfc.mon.mean.nc NCEP.lhtfl.mon.mean.nc
 				
-				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -selvar,air NCEP.tas.mon.mean.nc NCEP.tas.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
-				cdo -${remap},t42grid -timmean -selyear,${start_climatology}/${end_climatology} -selvar,air NCEP.tas.mon.mean.nc NCEP_clim.tas.T42.nc
-				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,850 -selvar,air NCEP.ta.mon.mean.nc NCEP.ta_850.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
-				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,200 -selvar,air NCEP.ta.mon.mean.nc NCEP.ta_200.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
-				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,850 -selvar,uwnd NCEP.ua.mon.mean.nc NCEP.ua_850.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
-				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,200 -selvar,uwnd NCEP.ua.mon.mean.nc NCEP.ua_200.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
-				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,850 -selvar,vwnd NCEP.va.mon.mean.nc NCEP.va_850.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
-				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,200 -selvar,vwnd NCEP.va.mon.mean.nc NCEP.va_200.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
-				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,500 -selvar,hgt NCEP.zg.mon.mean.nc NCEP.zg_500.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
-				cdo -${remap},t42grid -timmean -selyear,${start_climatology}/${end_climatology} -sellevel,500 -selvar,hgt NCEP.zg.mon.mean.nc NCEP_clim.zg_500.T42.nc			
-				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -selvar,shtfl NCEP.shtfl.mon.mean.nc NCEP.shtfl.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
-				cdo -${remap},t42grid -timmean -selyear,${start_climatology}/${end_climatology} -selvar,shtfl NCEP.shtfl.mon.mean.nc NCEP_clim.shtfl.T42.nc
-				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -selvar,lhtfl NCEP.lhtfl.mon.mean.nc NCEP.lhtfl.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
-				cdo -${remap},t42grid -timmean -selyear,${start_climatology}/${end_climatology} -selvar,lhtfl NCEP.lhtfl.mon.mean.nc NCEP_clim.lhtfl.T42.nc
-            	;;
+				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -selvar,air air.sig995.mon.mean.nc NCEP.tas.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+				cdo -${remap},t42grid -timmean -selyear,${start_climatology}/${end_climatology} -selvar,air air.sig995.mon.mean.nc NCEP_clim.tas.T42.nc
+				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,850 -selvar,air air.mon.mean.nc NCEP.ta_850.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,200 -selvar,air air.mon.mean.nc NCEP.ta_200.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,850 -selvar,uwnd uwnd.mon.mean.nc NCEP.ua_850.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,200 -selvar,uwnd uwnd.mon.mean.nc NCEP.ua_200.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,850 -selvar,vwnd vwnd.mon.mean.nc NCEP.va_850.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,200 -selvar,vwnd vwnd.mon.mean.nc NCEP.va_200.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,500 -selvar,hgt hgt.mon.mean.nc NCEP.zg_500.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+				cdo -${remap},t42grid -timmean -selyear,${start_climatology}/${end_climatology} -sellevel,500 -selvar,hgt hgt.mon.mean.nc NCEP_clim.zg_500.T42.nc			
+				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -selvar,shtfl shtfl.sfc.mon.mean.nc NCEP.shtfl.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+				cdo -${remap},t42grid -timmean -selyear,${start_climatology}/${end_climatology} -selvar,shtfl shtfl.sfc.mon.mean.nc NCEP_clim.shtfl.T42.nc
+				cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -selvar,lhtfl lhtfl.sfc.mon.mean.nc NCEP.lhtfl.mon.mean.${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+				cdo -${remap},t42grid -timmean -selyear,${start_climatology}/${end_climatology} -selvar,lhtfl lhtfl.sfc.mon.mean.nc NCEP_clim.lhtfl.T42.nc
+            	cut_flag=0
+				;;
              HadCRUT4)
             	wget -N http://www.cru.uea.ac.uk/cru/data/temperature/HadCRUT.4.2.0.0.median.nc 
             	data="HadCRUT.4.2.0.0.median.nc"
