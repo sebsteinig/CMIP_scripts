@@ -9,15 +9,14 @@ set -a
 	# 2. download data and check if all files have been downloaded
 	# 3. sort model data into individual directories
 	# 4. process model data with cdo 
-	# 5. create PCMDI climatologies (i.e. 1980-2005 climatologies on T42 grid)
-	# 6. download and process observation data
-	# 7. process KCM data
-	# 8. calculate global means and correlations
-	# 9. make plots with ncl
-	# 10. make trend plots with ncl
-	# 11. make correlation plots with ncl
-    # 12. make PCMDI metric plots with ncl
-	# 13. rotate plots 90° to the left
+	# 5. download and process observation data
+	# 6. process KCM data
+	# 7. calculate global means and correlations
+	# 8. make plots with ncl
+	# 9. make trend plots with ncl
+	# 10. make correlation plots with ncl
+    # 11. make PCMDI metric plots with ncl
+	# 12. rotate plots 90° to the left
 	
 	
 if [ $(whoami) = "stein" ]; then            # check for system/user and adapt CMIP path  
@@ -412,164 +411,7 @@ fi
 
 ##########################################################################################
     
- if [ $actid -eq 5 ];then # create PCMDI climatologies 
-
-	cd $CMIP_dir/data/CMIP5/$experiment/$realm/$variable       
-	
-    mkdir -p $CMIP_dir/processed/$experiment/$realm/$variable
-	
-	model_array=( $(find . -type d -maxdepth 1 -exec printf "{} " \;) )		# create array containing all model names
-
-	for index in ${!model_array[*]}; do
-	                                                                                                        
-        models[index]=${model_array[index]#./}								# remove "./" from the model names
-        
-	done
-	
-	loop_length=$(expr ${#models[*]} - 1)									# loop over all folders without "processed"
-
-	while [[ $((++i)) -le ${loop_length} ]]; do                            
-       
-    	cd ${models[i]}
-        echo 'processing ' ${models[i]}
-        file=`ls *.nc |tail -n1`
-		last_model_year=`echo $file | rev | cut -c 6-9 | rev`
-		file_1=`ls *.nc |head -n1`
-		first_model_year=`echo $file_1 | rev | cut -c 13-16 | rev`
-        model=${PWD##*/}
-
-        if [ -d processed ]; then rm -r processed; fi 			# remove old data
-        mkdir processed
-		
-		count=$(find . -maxdepth 1 -name '*.nc' | wc -l)
-		
-		if [ $count -eq 1 ]; then
-			ln *.nc processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
-		else
-			cdo mergetime *.nc processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
-		fi
-		
-		cd processed
-	
-    	ensemble_mean_flag=1
-    
-    	if [ "$variable" == "psl" ]; then
-    	 
-    	mv ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
-    	cdo divc,100 ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
-    	rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
-    	
-    	fi
-    	
-    	if [ "$variable" == "tas" ] || [ "$variable" == "ta" ]; then
-    	 
-    	mv ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
-    	cdo -chunit,K,°C -addc,-273.15 ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
-    	rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
-    	
-    	fi
-    	
-    	if [ "$variable" == "pr" ]; then
-    	 
-    	mv ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
-    	cdo mulc,86400 ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
-    	rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
-    	
-    	fi
-    	
-    	if [ "$model" != "GFDL-CM2p1" ] && [ "$variable" == "tos" ]; then 
-    	
-    	mv ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
-    	cdo -chunit,K,C -addc,-273.15 -setctomiss,0 ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
-    	rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
-    	
-    	fi
-    	
-		if [ "$variable" == "zg" ]; then 
-			cdo -${remap},t42grid -ymonmean -selyear,1980/2000 -sellevel,50000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_500_${realm}_${model}_${experiment}_CMIP5_r1i1p1_1980-2000_clim_${remap}_T42.nc
-		elif [ "$variable" == "ua" ] || [ "$variable" == "va" ] || [ "$variable" == "ta" ]; then 
-			cdo -${remap},t42grid -ymonmean -selyear,1980/2000 -sellevel,85000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_850_${realm}_${model}_${experiment}_CMIP5_r1i1p1_1980-2000_clim_${remap}_T42.nc
-			cdo -${remap},t42grid -ymonmean -selyear,1980/2000 -sellevel,20000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_200_${realm}_${model}_${experiment}_CMIP5_r1i1p1_1980-2000_clim_${remap}_T42.nc
-		else
-			cdo -${remap},t42grid -ymonmean -selyear,1980/2000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_1980-2000_clim_${remap}_T42.nc
-		fi
-		
-		rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc
-           		
-						
-		cd ../..
-		
-		mv ${model}/processed/*.nc $CMIP_dir/processed/$experiment/$realm/$variable; 
-		
-		rm -r ${model}/processed
-		mv $CMIP_dir/data/CMIP5/$experiment/$realm/$variable/$model/*.nc $CMIP_dir/data/CMIP5/$experiment/$realm/$variable
-		rm -r $CMIP_dir/data/CMIP5/$experiment/$realm/$variable/$model/
-		unset models[i]
-		cd $CMIP_dir/data/CMIP5/$experiment/$realm/$variable
-		
-	done
-	
-	if [ ${ensemble_mean_flag} -eq 1 ]; then
-	
-	cd $CMIP_dir/processed/$experiment/$realm/$variable/
-	
-	rm -f *mmm*1980-2000*
-	
-	if [ "$variable" == "zg" ]; then 
-		cdo ensmean ${variable}*500*1980-2000*T42* ${variable}_500_${realm}_mmm_${experiment}_CMIP5_r1i1p1_1980-2000_clim_${remap}_T42.nc	
-	elif [ "$variable" == "ua" ] || [ "$variable" == "va" ] || [ "$variable" == "ta" ]; then 
-		cdo ensmean ${variable}*850*1980-2000*T42* ${variable}_850_${realm}_mmm_${experiment}_CMIP5_r1i1p1_1980-2000_clim_${remap}_T42.nc	
-		cdo ensmean ${variable}*200*1980-2000*T42* ${variable}_200_${realm}_mmm_${experiment}_CMIP5_r1i1p1_1980-2000_clim_${remap}_T42.nc	
-	else
-		cdo ensmean ${variable}*1980-2000*T42* ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_1980-2000_clim_${remap}_T42.nc	
-	fi
-			
-	fi
-	
-	cre=0 	# 1 = calculate LW/SW cloud radiative effects
-	      	# 0 = do not calculate LW/SW cloud radiative effects
-		
-	if [ ${cre} -eq 1 ]; then
-		mkdir -p $CMIP_dir/processed/$experiment/Amon/sw_cre
-		mkdir -p $CMIP_dir/processed/$experiment/Amon/lw_cre
-		
-		cd $CMIP_dir/processed/$experiment/Amon/rsutcs/	
-		
-		for i in *.nc; do
-			j=`echo $i | sed 's/rsutcs/rsut/'`
-			k=`echo $i | sed 's/rsutcs/sw_cre/'`
-			cdo -chname,rsutcs,sw_cre -sub $i $CMIP_dir/processed/$experiment/Amon/rsut/$j $CMIP_dir/processed/$experiment/Amon/sw_cre/$k
-		done
-		
-		cd $CMIP_dir/processed/$experiment/Amon/sw_cre/
-		rm -f *mmm*1980-2000*
-		
-		cdo ensmean *1980-2000*T42* sw_cre_${realm}_mmm_${experiment}_CMIP5_r1i1p1_1980-2000_clim_${remap}_T42.nc	
-		
-		
-		cd $CMIP_dir/processed/$experiment/Amon/rlutcs/	
-		
-		for i in *.nc; do
-			j=`echo $i | sed 's/rlutcs/rlut/'`
-			k=`echo $i | sed 's/rlutcs/lw_cre/'`
-			cdo -chname,rlutcs,lw_cre -sub $i $CMIP_dir/processed/$experiment/Amon/rlut/$j $CMIP_dir/processed/$experiment/Amon/lw_cre/$k
-		done
-		
-		cd $CMIP_dir/processed/$experiment/Amon/lw_cre/
-		rm -f *mmm*1980-2000*
-		
-		cdo ensmean *1980-2000*T42* lw_cre_${realm}_mmm_${experiment}_CMIP5_r1i1p1_1980-2000_clim_${remap}_T42.nc	
-		
-		
-	fi
-			
-		  
-	 
-fi
-
-##########################################################################################
-    
-if [ $actid -eq 6 ];then # download and process observation data
+if [ $actid -eq 5 ];then # download and process observation data
 
 	for obs in $observations; do
 	
@@ -694,7 +536,7 @@ fi
 
 ##########################################################################################
     
-if [ $actid -eq 7 ];then # process KCM data
+if [ $actid -eq 6 ];then # process KCM data
 
 cd $CMIP_dir/data/KCM
 
@@ -762,7 +604,7 @@ fi
 
 ##########################################################################################
     
-if [ $actid -eq 8 ];then # calculate global means and correlations
+if [ $actid -eq 7 ];then # calculate global means and correlations
 	
 number_of_years=$((end_1 - start_1))
 number_of_decades=$((number_of_years/10))
@@ -917,7 +759,7 @@ fi
 
 ##########################################################################################
     
-if [ $actid -eq 9 ];then # make plots with ncl
+if [ $actid -eq 8 ];then # make plots with ncl
 
 mkdir -p $CMIP_dir/plots/surface_fields/${variable}
 
@@ -931,7 +773,7 @@ fi
 
 ##########################################################################################
     
-if [ $actid -eq 10 ];then # make plots with ncl
+if [ $actid -eq 9 ];then # make plots with ncl
 
 mkdir -p $CMIP_dir/plots/${variable}/trends
 
@@ -945,7 +787,7 @@ fi
 
 ##########################################################################################
     
-if [ $actid -eq 11 ];then # make global mean and correlation plots
+if [ $actid -eq 10 ];then # make global mean and correlation plots
 
 mkdir -p $CMIP_dir/plots/${variable}/correlations
 
@@ -959,7 +801,7 @@ fi
 
 ##########################################################################################
     
-if [ $actid -eq 12 ];then # make PCMDI metric plots
+if [ $actid -eq 11 ];then # make PCMDI metric plots
 
 mkdir -p $CMIP_dir/plots/${variable}/PCMDI_metrics
 
@@ -977,7 +819,7 @@ fi
 
 ##########################################################################################
 
-if [ $actid -eq 13 ];then # rotate plots 90° to the left
+if [ $actid -eq 12 ];then # rotate plots 90° to the left
 
 cd $CMIP_dir/plots/${variable}/trends
 for i in *.pdf; do pdftk $i cat 1left output rot_${i}; rm ${i}; mv rot_${i} ${i}; done
