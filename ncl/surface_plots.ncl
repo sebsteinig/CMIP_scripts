@@ -13,17 +13,12 @@ begin
 
 var=getenv("variable")
 realm=getenv("realm")
-period_1=getenv("period_1")
-period_2=getenv("period_2")
-start_1=getenv("start_1")
-end_1=getenv("end_1")
-start_2=getenv("start_2")
-end_2=getenv("end_2")
+period_1=getenv("period")
+start_1=getenv("start_period")
+end_1=getenv("end_period")
 plot_dir=getenv("plot_dir")
 CMIP_dir=getenv("CMIP_dir")
 experiment=getenv("experiment")
-plot_period_1=getenv("plot_period_1")
-plot_period_2=getenv("plot_period_2")
 plot_seasons=getenv("plot_seasons")
 plot_means=getenv("plot_means")
 plot_bias_ensemble=getenv("plot_bias_ensemble")
@@ -37,13 +32,13 @@ seasons=(/"DJF","MAM","JJA","SON","annual"/)
 ; define some other variables
 ;*****************************************************************************************
 
-directory=CMIP_dir+"/CMIP5/"+experiment+"/"+realm+"/"+var+"/processed/" ; directory of processed fields
-obs_directory=CMIP_dir+"/observations/"
-ppp=16 ;plots per page
-rows=4
-columns=4
-sigr=0.95
-model_count=dimsizes(systemfunc ("ls "+directory+"*"+realm+"*"+period_2+"*.nc"))
+directory=CMIP_dir+"/CMIP5/"+experiment+"/"+realm+"/"+var+"/processed/" 			; directory of processed fields
+obs_directory=CMIP_dir+"/observations/"												; directory of observations
+ppp=16 																				; desired plots per page
+rows=4																				; desired rows of panel plots per page
+columns=4																			; desired colums of panel plots per page
+sigr=0.95																			; significance level for t-test
+model_count=dimsizes(systemfunc ("ls "+directory+"*"+realm+"*"+period_2+"*.nc"))	; count number of models
 
 ;*****************************************************************************************
 ; load data

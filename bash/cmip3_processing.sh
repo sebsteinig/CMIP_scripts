@@ -17,12 +17,12 @@ fi
 ##########################################################################################
  
 experiment="20c3m"					# CMIP3 experiments: 20c3m
-var="tas"
+var="ua"
 period=1900-1999 					# time period for which the data gets processed
 climatology_period=1980-1999
 remap=remapbil
 res=HadCRUT4
-actions="2"
+actions="1"
 
 ##########################################################################################
 

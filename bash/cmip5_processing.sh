@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#set -x
+set -x
 set -e
 set -a
 
@@ -31,7 +31,7 @@ fi
 ##########################################################################################
 
 experiment="historical"				# CMIP5 experiments: historical,rcp45
-var="tos"				# CMIP variable to process (e.g. tos,tas,pr,psl,...)
+var="tas psl pr rsut rsutcs"				# CMIP variable to process (e.g. tos,tas,pr,psl,...)
 									# for full list see: http://cmip-pcmdi.llnl.gov/cmip5/docs/standard_output.pdf
 observations="NCEP"					# HadISST HadSST3 CMAP GPCP HadSLP2 MLD ERSST HadCRUT4 CERES_EBAF NCEP
 period=1870-2005					# time period for which the data gets processed
@@ -324,7 +324,7 @@ if [ $actid -eq 4 ];then # process data with cdo
 	fi
 		
     # calculate shortwave cloud radiative feedback fields if data for clear-sky and all-sky SW radiation is available
-	if [ -d cd $CMIP_dir/processed/$experiment/Amon/rsut/climatologies ] && [ -d cd $CMIP_dir/processed/$experiment/Amon/rsutcs/climatologies ] && ( [ "$variable" == "rsut" ] || [ "$variable" == "rsutcs" ] ); then 		
+	if [ -d $CMIP_dir/processed/$experiment/Amon/rsut/climatologies ] && [ -d cd $CMIP_dir/processed/$experiment/Amon/rsutcs/climatologies ] && ( [ "$variable" == "rsut" ] || [ "$variable" == "rsutcs" ] ); then 		
 	    # create folders for new sw_cre variable or delete old data
 	    mkdir -p $CMIP_dir/processed/$experiment/Amon/sw_cre/climatologies
 		mkdir -p $CMIP_dir/processed/$experiment/Amon/sw_cre/original_resolution
@@ -369,7 +369,7 @@ if [ $actid -eq 4 ];then # process data with cdo
     fi	
 		
     # do the same as above, but for the long wave cloud radiative effect
-	if [ -d cd $CMIP_dir/processed/$experiment/Amon/rlut/climatologies ] && [ -d cd $CMIP_dir/processed/$experiment/Amon/rlutcs/climatologies ] && ( [ "$variable" == "rlut" ] || [ "$variable" == "rlutcs" ] ); then 	
+	if [ -d $CMIP_dir/processed/$experiment/Amon/rlut/climatologies ] && [ -d cd $CMIP_dir/processed/$experiment/Amon/rlutcs/climatologies ] && ( [ "$variable" == "rlut" ] || [ "$variable" == "rlutcs" ] ); then 	
 	    # create folders for new sw_cre variable or delete old data
 	    mkdir -p $CMIP_dir/processed/$experiment/Amon/lw_cre/climatologies
 		mkdir -p $CMIP_dir/processed/$experiment/Amon/lw_cre/original_resolution
@@ -621,9 +621,9 @@ if [ $actid -eq 7 ];then # calculate global means and correlations
 
 	if [ "$variable" == "tos" ]; then # process tos observations
 		cdo -selyear,${start_period}/${end_period} -selgrid,1 $CMIP_dir/data/observations/ERSST/ersstv3b.mnmean.nc $CMIP_dir/data/observations/ERSST/ERSST_${start_period}-${end_period}.nc
-		cdo fldmean $CMIP_dir/data/observations/ERSST/ERSST_${start_period}-${end_period}.nc global_mean/ERSST_global_mean_${start_period}-${end_period}.nc
-		cdo sub $CMIP_dir/data/observations/ERSST/ERSST_${start_period}-${end_period}.nc -enlarge,$CMIP_dir/data/observations/ERSST/ERSST_${start_period}-${end_period}.nc global_mean/ERSST_global_mean_${start_period}-${end_period}.nc global_mean_removed/ERSST_global_mean_removed_${start_period}-${end_period}.nc
-		cdo ymonmean global_mean_removed/ERSST_global_mean_removed_${start_period}-${end_period}.nc global_mean_removed/ERSST_climatology_${start_period}-${end_period}.nc
+		cdo fldmean $CMIP_dir/data/observations/ERSST/ERSST_${start_period}-${end_period}.nc ../global_mean/ERSST_global_mean_${start_period}-${end_period}.nc
+		cdo sub $CMIP_dir/data/observations/ERSST/ERSST_${start_period}-${end_period}.nc -enlarge,$CMIP_dir/data/observations/ERSST/ERSST_${start_period}-${end_period}.nc ../global_mean/ERSST_global_mean_${start_period}-${end_period}.nc ../global_mean_removed/ERSST_global_mean_removed_${start_period}-${end_period}.nc
+		cdo ymonmean ../global_mean_removed/ERSST_global_mean_removed_${start_period}-${end_period}.nc ../global_mean_removed/ERSST_climatology_${start_period}-${end_period}.nc
 	
 		decade=1
 		while [ $decade -le ${number_of_decades} ]; do
@@ -639,13 +639,13 @@ if [ $actid -eq 7 ];then # calculate global means and correlations
 		
 			for data_set in ${obs_data} ; do	
 				if [ $decade -eq 1 ]; then
-					cdo -trend -yearmean -selyear,${first_year}/${end_period} -selvar,sst global_mean/${data_set}_global_mean_${start_period}-${end_period}.nc a.nc trends/${data_set}_global_mean_decadal_trends_${start_period}-${end_period}.nc
+					cdo -trend -yearmean -selyear,${first_year}/${end_period} -selvar,sst ../global_mean/${data_set}_global_mean_${start_period}-${end_period}.nc a.nc ../trends/${data_set}_global_mean_decadal_trends_${start_period}-${end_period}.nc
 					rm a.nc
 				else
-					cdo -trend -yearmean -selyear,${first_year}/${end_period} -selvar,sst global_mean/${data_set}_global_mean_${start_period}-${end_period}.nc a.nc trends/${data_set}_global_mean_trends_${first_year}-${end_period}.nc
-					cdo cat trends/${data_set}_global_mean_trends_${first_year}-${end_period}.nc trends/${data_set}_global_mean_decadal_trends_${start_period}-${end_period}.nc
+					cdo -trend -yearmean -selyear,${first_year}/${end_period} -selvar,sst ../global_mean/${data_set}_global_mean_${start_period}-${end_period}.nc a.nc ../trends/${data_set}_global_mean_trends_${first_year}-${end_period}.nc
+					cdo cat ../trends/${data_set}_global_mean_trends_${first_year}-${end_period}.nc ../trends/${data_set}_global_mean_decadal_trends_${start_period}-${end_period}.nc
 					rm a.nc
-					rm trends/${data_set}_global_mean_trends_${first_year}-${end_period}.nc
+					rm ../trends/${data_set}_global_mean_trends_${first_year}-${end_period}.nc
 				fi	
 			done		
 			decade=$(( $decade + 1 ))		
