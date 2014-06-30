@@ -12,6 +12,7 @@ begin
 ;*****************************************************************************************
 
 var=getenv("variable")
+res=getenv("res")
 realm=getenv("realm")
 period_1=getenv("period")
 start_1=getenv("start_period")
@@ -25,26 +26,26 @@ plot_bias_ensemble=getenv("plot_bias_ensemble")
 plot_bias_observations=getenv("plot_bias_observations")
 plot_bias_KCM=getenv("plot_bias_KCM")
 plot_change=getenv("plot_change")
-periods=(/period_1,period_2/)
+periods=(/period_1/)
 seasons=(/"DJF","MAM","JJA","SON","annual"/)
 
 ;*****************************************************************************************
 ; define some other variables
 ;*****************************************************************************************
 
-directory=CMIP_dir+"/CMIP5/"+experiment+"/"+realm+"/"+var+"/processed/" 			; directory of processed fields
-obs_directory=CMIP_dir+"/observations/"												; directory of observations
+directory=CMIP_dir+"/processed/CMIP5/"+experiment+"/"+realm+"/"+var+"/remapped_to_"+res+"/"			; directory of processed fields
+obs_directory=CMIP_dir+"/data/observations/"												; directory of observations
 ppp=16 																				; desired plots per page
 rows=4																				; desired rows of panel plots per page
 columns=4																			; desired colums of panel plots per page
 sigr=0.95																			; significance level for t-test
-model_count=dimsizes(systemfunc ("ls "+directory+"*"+realm+"*"+period_2+"*.nc"))	; count number of models
+model_count=dimsizes(systemfunc ("ls "+directory+"*"+realm+"*"+period_1+"*.nc"))	; count number of models
 
 ;*****************************************************************************************
 ; load data
 ;*****************************************************************************************
 
-observation_flag_period_1=0
+observation_flag_period_1=0		; initialise flags which are used to indicate whether observational data is available or not
 observation_flag_period_2=0
 KCM_flag=0
 
@@ -62,96 +63,75 @@ end if
 
 ;*****************************************************************************************
 
-do pp = 0,((number_of_pages)-1)
+do pp = 0,((number_of_pages)-1)			; run script for each output page; only load the data that is plotted on the first page
 
 print("page "+pp) 
 
 model_files_temp_period_1 = systemfunc ("ls "+directory+"*"+realm+"*"+period_1+"*.nc")
-model_files_temp_period_2 = systemfunc ("ls "+directory+"*"+realm+"*"+period_2+"*.nc")
 
-ensemble_file_period_1 = systemfunc ("ls "+directory+"*"+"ensemble"+"*"+period_1+"*.nc")
-ensemble_file_period_2 = systemfunc ("ls "+directory+"*"+"ensemble"+"*"+period_2+"*.nc")
+ensemble_file_period_1 = systemfunc ("ls "+directory+"*"+"mmm"+"*"+period_1+"*.nc")
+
 
 if (pp .lt. ((number_of_pages)-1)) then
 	model_files_period_1=model_files_temp_period_1((pp*stringtointeger(ppp)):(pp+1)*stringtointeger(ppp))
-	model_files_period_2=model_files_temp_period_2((pp*stringtointeger(ppp)):(pp+1)*stringtointeger(ppp))
 else
 	model_files_period_1=model_files_temp_period_1((pp*stringtointeger(ppp)):((model_count)-1))
-	model_files_period_2=model_files_temp_period_2((pp*stringtointeger(ppp)):((model_count)-1))		
 end if
 
 ;*****************************************************************************************
 
 model_name_period_1=model_files_temp_period_1
-model_name_period_2=model_files_temp_period_2
 
 do nt = 0,(dimsizes(model_files_temp_period_1)-1)
 	strs=str_split(model_files_temp_period_1(nt),"_")
-	model_name_period_1(nt)=strs(2)
+	model_name_period_1(nt)=strs(4)
 	delete(strs)
 end do
 
-do nt = 0,(dimsizes(model_files_temp_period_2)-1)
-	strs=str_split(model_files_temp_period_2(nt),"_")
-	model_name_period_2(nt)=strs(2)
-	delete(strs)
-end do
-
-delete([/model_files_temp_period_1,model_files_temp_period_2/])
+delete([/model_files_temp_period_1/])
 
 ;*****************************************************************************************
 
 timesteps_period_1=((stringtointeger(end_1))-(stringtointeger(start_1))+1)*12
-timesteps_period_2=((stringtointeger(end_2))-(stringtointeger(start_2))+1)*12
-timesteps_CMAP=((stringtointeger(end_2))-(1979)+1)*12
+timesteps_CMAP=((stringtointeger(end_1))-(1979)+1)*12
 timesteps_KCM=100*12
 
-model_fields_temp_period_1=new((/dimsizes(model_files_period_1),timesteps_period_1,180,360/),float)
-model_fields_temp_period_2=new((/dimsizes(model_files_period_2),timesteps_period_2,180,360/),float)
+mm_period_1  = addfile (ensemble_file_period_1, "r")
+ensemble_temp_period_1 = mm_period_1->$var$
+
+grid=dimsizes(ensemble_temp_period_1)
+
+model_fields_temp_period_1=new((/dimsizes(model_files_period_1),timesteps_period_1,grid(1),grid(2)/),float)
 
 model_f_period_1   = addfiles (model_files_period_1, "r")
-model_f_period_2   = addfiles (model_files_period_2, "r")
-mm_period_1  = addfile (ensemble_file_period_1, "r")
-mm_period_2  = addfile (ensemble_file_period_2, "r")
 ListSetType (model_f_period_1, "join")
-ListSetType (model_f_period_2, "join")
 
 model_fields_temp_period_1   = model_f_period_1[:]->$var$
-model_fields_temp_period_2   = model_f_period_2[:]->$var$
-ensemble_temp_period_1 = mm_period_1->$var$
-ensemble_temp_period_2 = mm_period_2->$var$
 model_fields_period_1=model_fields_temp_period_1(ncl_join|:,lat|:,lon|:,time|:)
-model_fields_period_2=model_fields_temp_period_2(ncl_join|:,lat|:,lon|:,time|:)
 ensemble_period_1=ensemble_temp_period_1(lat|:,lon|:,time|:)
-ensemble_period_2=ensemble_temp_period_2(lat|:,lon|:,time|:)
 
-delete([/model_fields_temp_period_1,model_fields_temp_period_2,ensemble_temp_period_1,ensemble_temp_period_2,model_f_period_1,model_f_period_2,mm_period_1,mm_period_2/])
+delete([/model_fields_temp_period_1,ensemble_temp_period_1,model_f_period_1,mm_period_1/])
 
 
 if (var .eq. "tos") then
 	observation_flag_period_1=1
-	observation_flag_period_2=1
-	KCM_flag=1
+	KCM_flag=0
 	
 	obs_files_period_1 = systemfunc ("ls "+obs_directory+"HadISST/*"+period_1+"*remap"+"*.nc")
-	obs_files_period_2 = systemfunc ("ls "+obs_directory+"HadISST/*"+period_2+"*remap"+"*.nc") ;
-
 	obs_f_period_1   = addfile (obs_files_period_1, "r")
-	obs_f_period_2   = addfile (obs_files_period_2, "r")
-	
+		
 	observation_temp_period_1   = obs_f_period_1->sst
-	observation_temp_period_2   = obs_f_period_2->sst
 	observation_period_1=observation_temp_period_1(lat|:,lon|:,time|:)
-	observation_period_2=observation_temp_period_2(lat|:,lon|:,time|:)	
 	heading="HadISST"
 	
-	delete([/obs_files_period_1,obs_files_period_2,obs_f_period_1,obs_f_period_2,observation_temp_period_1,observation_temp_period_2/])
+	delete([/obs_files_period_1,obs_f_period_1,observation_temp_period_1/])
 
 	KCM_fields_temp=new((/4,timesteps_KCM,180,360/),float)
 	KCM_files=systemfunc ("ls "+CMIP_dir+"/KCM/"+"*remap"+"*sosstsst.nc")
 	KCM_f   = addfiles (KCM_files, "r")
 	ListSetType (KCM_f, "join")
 		
+	if (KCM_flag .eq.1) then	
 	KCM_exp=KCM_files
 	do kt = 0,(dimsizes(KCM_files)-1)
 		strs=str_split(KCM_files(kt),"_")
@@ -163,16 +143,18 @@ if (var .eq. "tos") then
 		end if
 		delete(strs)
 	end do
+
 	
 	KCM_fields_temp=KCM_f[:]->sosstsst
 	KCM_fields=KCM_fields_temp(ncl_join|:,lat|:,lon|:,time|:)
 	
-	delete([/KCM_fields_temp,KCM_files,KCM_f/])		
+	delete([/KCM_fields_temp,KCM_files,KCM_f/])	
+	
+	end if	
 end if
 
 if (var .eq. "tas") then
 	observation_flag_period_1=0
-	observation_flag_period_2=0
 	KCM_flag=1
 	
 	KCM_fields_temp=new((/4,timesteps_KCM,180,360/),float)
@@ -201,38 +183,32 @@ end if
 
 if (var .eq. "psl") then
 	observation_flag_period_1=1
-	observation_flag_period_2=1
 	KCM_flag=0
 
 	obs_files_period_1 = systemfunc ("ls "+obs_directory+"HadSLP2/*"+period_1+"*remap"+"*.nc")
-	obs_files_period_2 = systemfunc ("ls "+obs_directory+"HadSLP2/*"+period_2+"*remap"+"*.nc") ;
 
 	obs_f_period_1   = addfile (obs_files_period_1, "r")
-	obs_f_period_2   = addfile (obs_files_period_2, "r")
 	
 	observation_temp_period_1   = obs_f_period_1->slp
-	observation_temp_period_2   = obs_f_period_2->slp
 	observation_period_1=observation_temp_period_1(lat|:,lon|:,time|:)
-	observation_period_2=observation_temp_period_2(lat|:,lon|:,time|:)	
 	heading="HadSLP2"
 	
-	delete([/obs_files_period_1,obs_files_period_2,obs_f_period_1,obs_f_period_2,observation_temp_period_1,observation_temp_period_2/])
+	delete([/obs_files_period_1,obs_f_period_1,observation_temp_period_1/])
 end if
 
 if (var .eq. "pr" )	then	
-	observation_flag_period_1=0
-	observation_flag_period_2=1
+	observation_flag_period_1=1
 	KCM_flag=1
 	
-	obs_files_period_2 = systemfunc ("ls "+obs_directory+"CMAP/*"+period_2+"*remap"+"*.nc") ;
+	obs_files_period_1 = systemfunc ("ls "+obs_directory+"CMAP/*"+period_1+"*remap"+"*.nc") ;
 
 	obs_f_period_1   = addfile (obs_files_period_1, "r")
 	
 	observation_temp_period_1   = obs_f_period_1->precip
-	observation_period_2=observation_temp_period_2(lat|:,lon|:,time|:)	
+	observation_period_1=observation_temp_period_1(lat|:,lon|:,time|:)	
 	heading="CMAP"
 	
-	delete([/obs_files_period_2,obs_f_period_2,observation_temp_period_2/])
+	delete([/obs_files_period_1,obs_f_period_1,observation_temp_period_1/])
 
 	KCM_fields_temp=new((/4,timesteps_KCM,180,360/),float)
 	KCM_files=systemfunc ("ls "+CMIP_dir+"/KCM/"+"*remap"+"*precip.nc")
@@ -271,24 +247,16 @@ print(seasons(kk))
 if (kk .eq. 4) then ; calculate annual means
 	
 	mean_model_fields_period_1_temp=month_to_annual(model_fields_period_1(time|:,ncl_join|:,lat|:,lon|:),1)
-	mean_model_fields_period_2_temp=month_to_annual(model_fields_period_2(time|:,ncl_join|:,lat|:,lon|:),1)
 	mean_model_fields_period_1=dim_avg_n_Wrap(mean_model_fields_period_1_temp,0)
-	mean_model_fields_period_2=dim_avg_n_Wrap(mean_model_fields_period_2_temp,0)
 	var_model_fields_period_1=dim_variance_n_Wrap(mean_model_fields_period_1_temp,0)
-	var_model_fields_period_2=dim_variance_n_Wrap(mean_model_fields_period_2_temp,0)
 	size_model_fields_period_1=equiv_sample_size (mean_model_fields_period_1_temp(ncl_join|:,lat|:,lon|:,year|:),sigr,0)
-	size_model_fields_period_2=equiv_sample_size (mean_model_fields_period_2_temp(ncl_join|:,lat|:,lon|:,year|:),sigr,0)
 	delete([/mean_model_fields_period_1_temp,mean_model_fields_period_1_temp/])
 
 	mean_ensemble_period_1_temp=month_to_annual(ensemble_period_1(time|:,lat|:,lon|:),1)
-	mean_ensemble_period_2_temp=month_to_annual(ensemble_period_2(time|:,lat|:,lon|:),1)	
 	mean_ensemble_period_1=dim_avg_n_Wrap(mean_ensemble_period_1_temp,0)
-	mean_ensemble_period_2=dim_avg_n_Wrap(mean_ensemble_period_2_temp,0)
 	var_ensemble_period_1=dim_variance_n_Wrap(mean_ensemble_period_1_temp,0)
-	var_ensemble_period_2=dim_variance_n_Wrap(mean_ensemble_period_2_temp,0)
 	size_ensemble_period_1=equiv_sample_size (mean_ensemble_period_1_temp(lat|:,lon|:,year|:),sigr,0)
-	size_ensemble_period_2=equiv_sample_size (mean_ensemble_period_2_temp(lat|:,lon|:,year|:),sigr,0)
-	delete([/mean_ensemble_period_1_temp,mean_ensemble_period_2_temp/])
+	delete([/mean_ensemble_period_1_temp/])
 
 
 
@@ -308,48 +276,29 @@ if (kk .eq. 4) then ; calculate annual means
 		delete(mean_observation_period_1_temp)
 	end if
 	
-	if (observation_flag_period_2 .eq. 1) then
-		mean_observation_period_2_temp=month_to_annual(observation_period_2(time|:,lat|:,lon|:),1)
-		mean_observation_period_2=dim_avg_n_Wrap(mean_observation_period_2_temp,0)
-		var_observation_period_2=dim_variance_n_Wrap(mean_observation_period_2_temp,0)
-		size_observation_period_2=equiv_sample_size (mean_observation_period_2_temp(lat|:,lon|:,year|:),sigr,0)
-		delete(mean_observation_period_2_temp)
-	end if
-
 ;*****************************************************************************************
 	
 else ; calculate seasonal means
 
 	mean_model_fields_period_1=new((/dimsizes(model_files_period_1),180,360/),float)
-	mean_model_fields_period_2=new((/dimsizes(model_files_period_2),180,360/),float)
 	var_model_fields_period_1=new((/dimsizes(model_files_period_1),180,360/),float)
-	var_model_fields_period_2=new((/dimsizes(model_files_period_2),180,360/),float)
 	size_model_fields_period_1=new((/dimsizes(model_files_period_1),180,360/),float)
-	size_model_fields_period_2=new((/dimsizes(model_files_period_2),180,360/),float)
 	mean_KCM_fields=new((/4,180,360/),float)
 	var_KCM_fields=new((/4,180,360/),float)
 	size_KCM_fields=new((/4,180,360/),float)
 
 	do nn=0,((dimsizes(model_files_period_1))-1)
 		mean_model_fields_period_1_temp=month_to_season(model_fields_period_1(time|:,ncl_join|nn,lat|:,lon|:),seasons(kk))
-		mean_model_fields_period_2_temp=month_to_season(model_fields_period_2(time|:,ncl_join|nn,lat|:,lon|:),seasons(kk))
 		mean_model_fields_period_1(nn,:,:)=dim_avg_n_Wrap(mean_model_fields_period_1_temp,0)
-		mean_model_fields_period_2(nn,:,:)=dim_avg_n_Wrap(mean_model_fields_period_2_temp,0)
 		var_model_fields_period_1(nn,:,:)=dim_variance_n_Wrap(mean_model_fields_period_1_temp,0)
-		var_model_fields_period_2(nn,:,:)=dim_variance_n_Wrap(mean_model_fields_period_2_temp,0)
 		size_model_fields_period_1(nn,:,:)=equiv_sample_size (mean_model_fields_period_1_temp(lat|:,lon|:,time|:),sigr,0)
-		size_model_fields_period_2(nn,:,:)=equiv_sample_size (mean_model_fields_period_2_temp(lat|:,lon|:,time|:),sigr,0)
 		delete([/mean_model_fields_period_1_temp,mean_model_fields_period_2_temp/])
 	end do
 	
 	mean_ensemble_period_1_temp=month_to_season(ensemble_period_1(time|:,lat|:,lon|:),seasons(kk))
-	mean_ensemble_period_2_temp=month_to_season(ensemble_period_2(time|:,lat|:,lon|:),seasons(kk))	
 	mean_ensemble_period_1=dim_avg_n_Wrap(mean_ensemble_period_1_temp,0)
-	mean_ensemble_period_2=dim_avg_n_Wrap(mean_ensemble_period_2_temp,0)
 	var_ensemble_period_1=dim_variance_n_Wrap(mean_ensemble_period_1_temp,0)
-	var_ensemble_period_2=dim_variance_n_Wrap(mean_ensemble_period_2_temp,0)
 	size_ensemble_period_1=equiv_sample_size (mean_ensemble_period_1_temp(lat|:,lon|:,time|:),sigr,0)
-	size_ensemble_period_2=equiv_sample_size (mean_ensemble_period_2_temp(lat|:,lon|:,time|:),sigr,0)
 	delete([/mean_ensemble_period_1_temp,mean_ensemble_period_2_temp/])
 
 	if (KCM_flag .eq. 1) then
@@ -370,15 +319,7 @@ else ; calculate seasonal means
 		size_observation_period_1=equiv_sample_size (mean_observation_period_1_temp(lat|:,lon|:,time|:),sigr,0)
 		delete(mean_observation_period_1_temp)
 	end if
-	
-	if (observation_flag_period_2 .eq. 1) then
-		mean_observation_period_2_temp=month_to_season(observation_period_2(time|:,lat|:,lon|:),seasons(kk))
-		mean_observation_period_2=dim_avg_n_Wrap(mean_observation_period_2_temp,0)
-		var_observation_period_2=dim_variance_n_Wrap(mean_observation_period_2_temp,0)
-		size_observation_period_2=equiv_sample_size (mean_observation_period_2_temp(lat|:,lon|:,time|:),sigr,0)
-		delete(mean_observation_period_2_temp)
-	end if
-	
+		
 end if
 
 ;**********************************************************************************
@@ -390,24 +331,15 @@ end if
 if (plot_means .eq. 1) then
 print("plotting means")
 
-do jj = 0,1
-print(periods(jj))
+model=mean_model_fields_period_1
+ensemble=mean_ensemble_period_1
+name=model_name_period_1
 
-model_fields=[/mean_model_fields_period_1,mean_model_fields_period_2/]
-ensemble_fields=[/mean_ensemble_period_1,mean_ensemble_period_2/]
-observation_flags=[/observation_flag_period_1,observation_flag_period_2/]
-model_names=[/model_name_period_1,model_name_period_2/]
-
-model=model_fields[jj]
-ensemble=ensemble_fields[jj]
-name=model_names[jj]
-
-if (observation_flags[jj] .eq. 1) then
-	observation_fields=[/mean_observation_period_1,mean_observation_period_2/]
-	observation=observation_fields[jj]
+if (observation_flag_period_1 .eq. 1) then
+	observation=mean_observation_period_1
 end if
 
-wks = gsn_open_wks("pdf" ,plot_dir+"/"+var+"_"+seasons(kk)+"_mean_"+periods(jj)+"_"+(pp+1))               ; open pdf file
+wks = gsn_open_wks("pdf" ,plot_dir+"/"+var+"_"+seasons(kk)+"_mean+"_"+(pp+1))               ; open pdf file
 
 plot= new (stringtointeger(ppp), graphic)      ; create graphical array
 
@@ -457,7 +389,7 @@ if (var .eq. "pr") then
 end if
 
 res_mean_Panel                  = True                   ; modify the panel plot
-res_mean_Panel@txString         = var+"_"+periods(jj)+"_"+seasons(kk)+"_mean"      ; plot title
+res_mean_Panel@txString         = var+"_"+seasons(kk)+"_mean"      ; plot title
 res_mean_Panel@gsnMaximize      = True                   ; make ps, eps, pdf, ... large
 res_mean_Panel@gsnPanelLabelBar = True                   ; add common label bar
 
@@ -497,7 +429,6 @@ end do; ii
 gsn_panel(wks,plot,(/rows,columns/),res_mean_Panel)               ; create panel plot
 delete([/model,ensemble/])
 
-end do; jj
 end if
 
 ;**********************************************************************************
