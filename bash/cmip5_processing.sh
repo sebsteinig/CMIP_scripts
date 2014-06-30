@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/bin/bash -xea
 
-set -x
-set -e
-set -a
+#set -x
+#set -e
+#set -a
 
 # This script will do the following actions:
 	# 1. create wget script for chosen $var and $experiment
@@ -31,36 +31,39 @@ fi
 ##########################################################################################
 
 experiment="historical"				# CMIP5 experiments: historical,rcp45
-var="tos"				# CMIP variable to process (e.g. tos,tas,pr,psl,...)
-									# for full list see: http://cmip-pcmdi.llnl.gov/cmip5/docs/standard_output.pdf
+var="rlut rsut"				# CMIP variable to process (e.g. tos,tas,pr,psl,...)
+#var="tos"									# for full list see: http://cmip-pcmdi.llnl.gov/cmip5/docs/standard_output.pdf
 observations="NCEP"					# HadISST HadSST3 CMAP GPCP HadSLP2 MLD ERSST HadCRUT4 CERES_EBAF NCEP
 period=1870-2005					# time period for which the data gets processed
 climatology_period=1980-1999
-res=ERSST  							# HadCRUT4, ERSST
+res=HadCRUT4						# HadCRUT4, ERSST
 remap=remapbil
-actions="8" 						# choose which sections of the script get executed; see list above
+actions="4" 						# choose which sections of the script get executed; see list above
 
 ##########################################################################################	
-# choose plots ( 0 = no / 1 = yes )
 
-plot_seasons=0
-plot_means=1
-plot_bias_ensemble=0
-plot_bias_observations=0
-plot_bias_KCM=0
-plot_change=0
+# choose plots ( 0 = no / 1 = yes )
+plot_seasons=0					# plot seasonal mean fields
+plot_means=1					# plot annual mean fields				
+plot_bias_ensemble=1			# plot bias against ensemble mean
+plot_bias_observations=0		# plot bias against observations 	
+plot_bias_KCM=0					# plot bias against KCM experiments
+#plot_change=0					# plot warming during 20th century
+								# This has to be redone, since the file structure has changed!!! 
 
 ##########################################################################################
 
-start_period=${period:0:4}
-end_period=${period:5:9}
+start_period=${period:0:4}						# calculate beginning of chosen period 
+end_period=${period:5:9}						# calculate end of chosen period 
 
-start_climatology=${climatology_period:0:4}
-end_climatology=${climatology_period:5:9}
+start_climatology=${climatology_period:0:4}		# calculate beginning of chosen climatological period 
+end_climatology=${climatology_period:5:9}		# calculate end of chosen climatological period	
+
+for actid in $actions ; do						# loop over all chosen actions
 	
-for variable in $var; do		# loop over all chosen variables
+for variable in $var; do						# loop over all chosen variables
 
-# select according realm (atmosphere or ocean variable) for chosen variable
+# select corresponding realm (atmosphere or ocean variable) for chosen variable
 case $variable in                                                                   
             tos|zos|mlotst|zosga|zossga|zostoga|msftmyz)   
                 realm=Omon; cmor_table=ocean                                                  				
@@ -84,7 +87,6 @@ case $res in
             	echo unknown remap reference; break
 esac
 
-for actid in $actions ; do		# loop over all chosen actions
 
 ##########################################################################################
 
@@ -304,12 +306,17 @@ if [ $actid -eq 4 ];then # process data with cdo
 		unset models[i]		
 	done
 	
+	unset i
+	
 	if [ ${ensemble_mean_flag} -eq 1 ]; then # remove old ensemble mean and calculate new one
 	    cd $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}/
 	    rm -f ${variable}*mmm*${period}*${res}*
 		# HadGEM models get excluded, since they only provide data until 200511 -> different number of timesteps than other models
-	    cdo ensmean $(ls ${variable}*${period}*${res}* |grep -vi "HadGEM") ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}.nc
-		
+	    if [ "$variable" == "rlutcs" ] || [ "$variable" == "rsutcs" ] || [ "$variable" == "rsut" ] || [ "$variable" == "rlut" ]; then
+			cdo ensmean $(ls ${variable}*${period}*${res}* |grep -vi "HadGEM" |grep -vi "CMCC-CESM" |grep -vi "CMCC-CM") ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}.nc
+		else
+			cdo ensmean $(ls ${variable}*${period}*${res}* |grep -vi "HadGEM") ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}.nc
+		fi
 		cd $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies
 		rm -f ${variable}*mmm*${start_climatology}-${end_climatology}*
 		if [ "$variable" == "zg" ]; then 
