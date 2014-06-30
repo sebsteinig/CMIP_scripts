@@ -73,11 +73,13 @@ ensemble_file_period_1 = systemfunc ("ls "+directory+"*"+"mmm"+"*"+period_1+"*.n
 
 
 if (pp .lt. ((number_of_pages)-1)) then
-	model_files_period_1=model_files_temp_period_1((pp*stringtointeger(ppp)):(pp+1)*stringtointeger(ppp))
+	model_files_period_1=model_files_temp_period_1((pp*stringtointeger(ppp)):(pp+1)*stringtointeger(ppp)) 		; put "ppp" plot on the first pages
 else
-	model_files_period_1=model_files_temp_period_1((pp*stringtointeger(ppp)):((model_count)-1))
+	model_files_period_1=model_files_temp_period_1((pp*stringtointeger(ppp)):((model_count)-1))					; put the rest on the last page
 end if
 
+;*****************************************************************************************
+; get model names from file names
 ;*****************************************************************************************
 
 model_name_period_1=model_files_temp_period_1
@@ -92,21 +94,30 @@ delete([/model_files_temp_period_1/])
 
 ;*****************************************************************************************
 
-timesteps_period_1=((stringtointeger(end_1))-(stringtointeger(start_1))+1)*12
+; calculate number of timesteps for whole time series
+last_timestep_for_plot=((stringtointeger(end_1))-(stringtointeger(start_1))+1)*12
+; calculate timestep for beginning of the last 20-yr period
+first_timestep_for_plot=last_timestep_for_plot-(12*20)
 timesteps_CMAP=((stringtointeger(end_1))-(1979)+1)*12
 timesteps_KCM=100*12
 
+;load ensemble mean data
 mm_period_1  = addfile (ensemble_file_period_1, "r")
-ensemble_temp_period_1 = mm_period_1->$var$
+ensemble_temp_period_1 = mm_period_1->$var$(first_timestep_for_plot:last_timestep_for_plot-1,:,:)
 
+; get grid information from ensemble mean file to use it for the rest of the models
 grid=dimsizes(ensemble_temp_period_1)
 
-model_fields_temp_period_1=new((/dimsizes(model_files_period_1),timesteps_period_1,grid(1),grid(2)/),float)
+; initialize model array for first page
+model_fields_temp_period_1=new((/dimsizes(model_files_period_1),last_timestep_for_plot-first_timestep_for_plot,grid(1),grid(2)/),float)
 
 model_f_period_1   = addfiles (model_files_period_1, "r")
 ListSetType (model_f_period_1, "join")
 
-model_fields_temp_period_1   = model_f_period_1[:]->$var$
+; load only subset of data for the last 20 years
+model_fields_temp_period_1   = model_f_period_1[:]->$var$(:,first_timestep_for_plot:last_timestep_for_plot-1,:,:)
+
+; reorder dimensions of data to prepare for processing
 model_fields_period_1=model_fields_temp_period_1(ncl_join|:,lat|:,lon|:,time|:)
 ensemble_period_1=ensemble_temp_period_1(lat|:,lon|:,time|:)
 
@@ -339,7 +350,7 @@ if (observation_flag_period_1 .eq. 1) then
 	observation=mean_observation_period_1
 end if
 
-wks = gsn_open_wks("pdf" ,plot_dir+"/"+var+"_"+seasons(kk)+"_mean+"_"+(pp+1))               ; open pdf file
+wks = gsn_open_wks("pdf" ,plot_dir+"/"+var+"_"+seasons(kk)+"_mean"+"_"+(pp+1))               ; open pdf file
 
 plot= new (stringtointeger(ppp), graphic)      ; create graphical array
 
@@ -410,7 +421,7 @@ do ii = 0,(stringtointeger(ppp)-1)
 		plot(last+n)  = gsn_csm_contour_map(wks,ensemble,res_mean)
 		n=n+1
 		
-		if (observation_flags[jj] .eq. 1 ) then			
+		if (observation_flag_period_1 .eq. 1 ) then			
 			res_mean@tiMainString=heading
 			plot(last+n)  = gsn_csm_contour_map(wks,observation,res_mean)
 			n=n+1		
@@ -501,9 +512,6 @@ end if
 if (plot_bias_ensemble .eq. 1) then
 print("plotting bias against ensemble-mean")
 
-do jj = 0,1
-print(periods(jj))
-
 model_fields=[/mean_model_fields_period_1,mean_model_fields_period_2/]
 ensemble_fields=[/mean_ensemble_period_1,mean_ensemble_period_2/]
 var_model_fields=[/var_model_fields_period_1,var_model_fields_period_2/]
@@ -513,14 +521,14 @@ size_ensemble_fields=[/size_ensemble_period_1,size_ensemble_period_2/]
 model_names=[/model_name_period_1,model_name_period_2/]
 observation_flags=[/observation_flag_period_1,observation_flag_period_2/]
 
-model=model_fields[jj]
-ensemble=ensemble_fields[jj]
-var_model=var_model_fields[jj]
-var_ensemble=var_ensemble_fields[jj]
-size_model=size_model_fields[jj]
+model=mean_model_fields_period_1
+ensemble=mean_ensemble_period_1
+var_model=var_model_fields_period_1
+var_ensemble=var_ensemble_period_1
+size_model=size_model_fields_period_1
 size_ensemble=size_ensemble_fields[jj]
-name=model_names[jj]
-observation_flag=observation_flags[jj]
+name=model_name_period_1
+observation_flag=observation_flag_period_1
 
 if (observation_flags[jj] .eq. 1) then
 	observation_fields=[/mean_observation_period_1,mean_observation_period_2/]
@@ -874,11 +882,17 @@ end if
 ;**********************************************************************************
 ;**********************************************************************************
 
-delete([/mean_model_fields_period_1,mean_model_fields_period_2,mean_ensemble_period_1,mean_ensemble_period_2,mean_KCM_fields/])
+delete([/mean_model_fields_period_1,mean_ensemble_period_1/])
+if (KCM_flag .eq. 1) then
+	delete([/mean_KCM_fields/])
+end if
 kk=kk+1
 
 end do ; end kk
-delete([/model_fields_period_1,model_fields_period_2,KCM_fields,model_files_period_1,model_files_period_2,var_model_fields_period_1,var_model_fields_period_2,size_model_fields_period_1,size_model_fields_period_2/])
+delete([/model_fields_period_1,model_files_period_1,var_model_fields_period_1,size_model_fields_period_1/])
+if (KCM_flag .eq. 1) then
+	delete([/KCM_fields/])
+end if
 
 end do ; end pp
 
