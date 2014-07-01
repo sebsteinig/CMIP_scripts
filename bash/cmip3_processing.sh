@@ -2,8 +2,9 @@
 #set -x
 set -e
 # This script will do the following actions:
-	# 1. PCMDI climatologies
-	# 2. process data with cdo 
+	# 1. download the data
+	# 2. merge data and create 1 file list (this step is probably not needed anymore)
+	# 3. process the data with cdo; this is analogue to the cmip5_processing script to use the same file structure in processed  
 
 if [ $(whoami) = "stein" ]; then  
 	CMIP_dir="/Users/stein/Documents/Uni/Master/HiWi/CMIP"

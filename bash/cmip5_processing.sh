@@ -12,7 +12,7 @@ set -a
 	# 5. download and process observation data
 	# 6. process KCM data
 	# 7. calculate global means and correlations
-	# 8. make plots with ncl
+	# 8. make surface plots with ncl
 	# 9. make trend plots with ncl
 	# 10. make correlation plots with ncl
     # 11. make PCMDI metric plots with ncl
@@ -735,7 +735,7 @@ fi
 
 ##########################################################################################
     
-if [ $actid -eq 8 ];then # make plots with ncl
+if [ $actid -eq 8 ];then # make surface plots with ncl
 
 mkdir -p $CMIP_dir/plots/surface_fields/${variable}
 
@@ -757,7 +757,7 @@ export plot_dir=$CMIP_dir/plots/${variable}/trends
 export CMIP_dir
 export experiment
 
-ncl $CMIP_dir/scripts/trend_plots.ncl
+ncl $CMIP_dir/CMIP_scripts/ncl/trend_plots.ncl
 
 fi
 
@@ -771,7 +771,7 @@ export plot_dir=$CMIP_dir/plots/${variable}/correlations
 export CMIP_dir
 export experiment
 
-ncl $CMIP_dir/scripts/correlation_plots.ncl
+ncl $CMIP_dir/CMIP_scripts/ncl/correlation_plots.ncl
 
 fi
 
@@ -785,11 +785,8 @@ export plot_dir=$CMIP_dir/plots/${variable}/PCMDI_metrics
 export CMIP_dir
 export experiment
 
-#ncl $CMIP_dir/scripts/PCMDI_metrics.ncl
-#ncl $CMIP_dir/scripts/PCMDI_metrics_against_P14.ncl
-#ncl $CMIP_dir/scripts/PCMDI_metrics_3.0.ncl
-#ncl $CMIP_dir/scripts/PCMDI_metrics_3.5.ncl
-ncl $CMIP_dir/scripts/PCMDI_metrics_4.0.ncl
+l
+ncl $CMIP_dir/CMIP_scripts/ncl/PCMDI_metrics_4.0.ncl
 
 fi
 
