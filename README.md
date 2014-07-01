@@ -65,3 +65,14 @@ CMIP5:
 	- rmeapped_to_$res (model field remapped to an observational grid; ERSST or HadCRUT4)
 	- original_resolution (model field on its original resolution
 	- climatologies (climatological fields for the period specified in $climatology_period; needed for the PCMDI metrics table)
+
+
+Surface Plots
+============
+
+- Open “cmip5_processing.sh” under “CMIP_scripts/bash/“
+- sepcify: “experiment”, “var”, “actions” (8), "period" and "res"
+- specifiy the plot mods just below to choose which fields should be plotted
+  (please note: don't set plot_means and plot_seasons both to 1, ths will result in an ncl error at the moment)
+
+
