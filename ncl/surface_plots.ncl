@@ -39,7 +39,8 @@ ppp=16 																				; desired plots per page
 rows=4																				; desired rows of panel plots per page
 columns=4																			; desired colums of panel plots per page
 sigr=0.95																			; significance level for t-test
-model_count=dimsizes(systemfunc ("ls "+directory+"*"+realm+"*"+period_1+"*.nc"))	; count number of models
+model_count=dimsizes(systemfunc ("ls "+directory+"*"+realm+"*"+period_1+"*.nc"))-1	; count number of models
+
 
 ;*****************************************************************************************
 ; load data
@@ -53,7 +54,7 @@ KCM_flag=0
 ; calculate number of pages needed to plot all models (depends on ppp and model_count)
 ;*****************************************************************************************
 
-number_of_pages=(model_count/stringtofloat(ppp))
+number_of_pages=(model_count/int2flt(ppp))
 
 if (number_of_pages .eq. floattointeger(number_of_pages)) then
 	number_of_pages=number_of_pages
@@ -67,15 +68,17 @@ do pp = 0,((number_of_pages)-1)			; run script for each output page; only load t
 
 print("page "+pp) 
 
-model_files_temp_period_1 = systemfunc ("ls "+directory+"*"+realm+"*"+period_1+"*.nc")
+model_files_temp_period_1_tmp = systemfunc ("ls "+directory+"*"+realm+"*"+period_1+"*.nc")
+model_files_temp_period_1 = model_files_temp_period_1_tmp(0:model_count-1)
+
 
 ensemble_file_period_1 = systemfunc ("ls "+directory+"*"+"mmm"+"*"+period_1+"*.nc")
 
 
 if (pp .lt. ((number_of_pages)-1)) then
-	model_files_period_1=model_files_temp_period_1((pp*stringtointeger(ppp)):(pp+1)*stringtointeger(ppp)) 		; put "ppp" plot on the first pages
+	model_files_period_1=model_files_temp_period_1((pp*ppp):(pp+1)*ppp) 		; put "ppp" plot on the first pages
 else
-	model_files_period_1=model_files_temp_period_1((pp*stringtointeger(ppp)):((model_count)-1))					; put the rest on the last page
+	model_files_period_1=model_files_temp_period_1((pp*ppp):((model_count)-1))					; put the rest on the last page
 end if
 
 ;*****************************************************************************************
@@ -90,14 +93,17 @@ do nt = 0,(dimsizes(model_files_temp_period_1)-1)
 	delete(strs)
 end do
 
+print(model_name_period_1)
+
+
 delete([/model_files_temp_period_1/])
 
 ;*****************************************************************************************
 
 ; calculate number of timesteps for whole time series
 last_timestep_for_plot=((stringtointeger(end_1))-(stringtointeger(start_1))+1)*12
-; calculate timestep for beginning of the last 20-yr period
-first_timestep_for_plot=last_timestep_for_plot-(12*20)
+; calculate timestep for beginning of the last 30-yr period
+first_timestep_for_plot=last_timestep_for_plot-(12*30)
 timesteps_CMAP=((stringtointeger(end_1))-(1979)+1)*12
 timesteps_KCM=100*12
 
@@ -114,7 +120,7 @@ model_fields_temp_period_1=new((/dimsizes(model_files_period_1),last_timestep_fo
 model_f_period_1   = addfiles (model_files_period_1, "r")
 ListSetType (model_f_period_1, "join")
 
-; load only subset of data for the last 20 years
+; load only subset of data for the last 30 years
 model_fields_temp_period_1   = model_f_period_1[:]->$var$(:,first_timestep_for_plot:last_timestep_for_plot-1,:,:)
 
 ; reorder dimensions of data to prepare for processing
@@ -125,8 +131,8 @@ delete([/model_fields_temp_period_1,ensemble_temp_period_1,model_f_period_1,mm_p
 
 
 if (var .eq. "tos") then
-	observation_flag_period_1=1
-	KCM_flag=0
+	observation_flag_period_1=1		; observations for this variable exist
+	KCM_flag=0						; KCM experiments for this variable exist
 	
 	obs_files_period_1 = systemfunc ("ls "+obs_directory+"HadISST/*"+period_1+"*remap"+"*.nc")
 	obs_f_period_1   = addfile (obs_files_period_1, "r")
@@ -136,13 +142,14 @@ if (var .eq. "tos") then
 	heading="HadISST"
 	
 	delete([/obs_files_period_1,obs_f_period_1,observation_temp_period_1/])
+	
+	if (KCM_flag .eq.1) then
 
 	KCM_fields_temp=new((/4,timesteps_KCM,180,360/),float)
 	KCM_files=systemfunc ("ls "+CMIP_dir+"/KCM/"+"*remap"+"*sosstsst.nc")
 	KCM_f   = addfiles (KCM_files, "r")
 	ListSetType (KCM_f, "join")
-		
-	if (KCM_flag .eq.1) then	
+			
 	KCM_exp=KCM_files
 	do kt = 0,(dimsizes(KCM_files)-1)
 		strs=str_split(KCM_files(kt),"_")
@@ -166,8 +173,9 @@ end if
 
 if (var .eq. "tas") then
 	observation_flag_period_1=0
-	KCM_flag=1
+	KCM_flag=0
 	
+	if (KCM_flag .eq.1) then
 	KCM_fields_temp=new((/4,timesteps_KCM,180,360/),float)
 	KCM_files=systemfunc ("ls "+CMIP_dir+"/KCM/"+"*remap"+"*temp2.nc")
 	KCM_f   = addfiles (KCM_files, "r")
@@ -189,7 +197,8 @@ if (var .eq. "tas") then
 	KCM_fields_temp(2:3,:,:,:)=KCM_f[2:3]->temp2
 	KCM_fields=KCM_fields_temp(ncl_join|:,lat|:,lon|:,time|:)
 	
-	delete([/KCM_files,KCM_f/])		
+	delete([/KCM_files,KCM_f/])	
+	end if	
 end if
 
 if (var .eq. "psl") then
@@ -209,9 +218,9 @@ end if
 
 if (var .eq. "pr" )	then	
 	observation_flag_period_1=1
-	KCM_flag=1
+	KCM_flag=0
 	
-	obs_files_period_1 = systemfunc ("ls "+obs_directory+"CMAP/*"+period_1+"*remap"+"*.nc") ;
+	obs_files_period_1 = systemfunc ("ls "+obs_directory+"CMAP/CMAP_1979-2005_remapbil_ERSST.nc") ;
 
 	obs_f_period_1   = addfile (obs_files_period_1, "r")
 	
@@ -220,7 +229,8 @@ if (var .eq. "pr" )	then
 	heading="CMAP"
 	
 	delete([/obs_files_period_1,obs_f_period_1,observation_temp_period_1/])
-
+	
+	if (KCM_flag .eq.1) then
 	KCM_fields_temp=new((/4,timesteps_KCM,180,360/),float)
 	KCM_files=systemfunc ("ls "+CMIP_dir+"/KCM/"+"*remap"+"*precip.nc")
 	KCM_f   = addfiles (KCM_files, "r")
@@ -242,6 +252,7 @@ if (var .eq. "pr" )	then
 	KCM_fields=KCM_fields_temp(ncl_join|:,lat|:,lon|:,time|:)
 	
 	delete([/KCM_fields_temp,KCM_files,KCM_f/])	
+	end if
 end if
 
 ;*****************************************************************************************
@@ -291,29 +302,29 @@ if (kk .eq. 4) then ; calculate annual means
 	
 else ; calculate seasonal means
 
-	mean_model_fields_period_1=new((/dimsizes(model_files_period_1),180,360/),float)
-	var_model_fields_period_1=new((/dimsizes(model_files_period_1),180,360/),float)
-	size_model_fields_period_1=new((/dimsizes(model_files_period_1),180,360/),float)
-	mean_KCM_fields=new((/4,180,360/),float)
-	var_KCM_fields=new((/4,180,360/),float)
-	size_KCM_fields=new((/4,180,360/),float)
+	mean_model_fields_period_1=new((/dimsizes(model_files_period_1)-1,grid(1),grid(2)/),float)
+	var_model_fields_period_1=new((/dimsizes(model_files_period_1)-1,grid(1),grid(2)/),float)
+	size_model_fields_period_1=new((/dimsizes(model_files_period_1)-1,grid(1),grid(2)/),float)
+	mean_KCM_fields=new((/4,grid(1),grid(2)/),float)
+	var_KCM_fields=new((/4,grid(1),grid(2)/),float)
+	size_KCM_fields=new((/4,grid(1),grid(2)/),float)
 
-	do nn=0,((dimsizes(model_files_period_1))-1)
+	do nn=0,((dimsizes(model_files_period_1))-2)
 		mean_model_fields_period_1_temp=month_to_season(model_fields_period_1(time|:,ncl_join|nn,lat|:,lon|:),seasons(kk))
 		mean_model_fields_period_1(nn,:,:)=dim_avg_n_Wrap(mean_model_fields_period_1_temp,0)
 		var_model_fields_period_1(nn,:,:)=dim_variance_n_Wrap(mean_model_fields_period_1_temp,0)
 		size_model_fields_period_1(nn,:,:)=equiv_sample_size (mean_model_fields_period_1_temp(lat|:,lon|:,time|:),sigr,0)
-		delete([/mean_model_fields_period_1_temp,mean_model_fields_period_2_temp/])
+		delete([/mean_model_fields_period_1_temp/])
 	end do
 	
 	mean_ensemble_period_1_temp=month_to_season(ensemble_period_1(time|:,lat|:,lon|:),seasons(kk))
 	mean_ensemble_period_1=dim_avg_n_Wrap(mean_ensemble_period_1_temp,0)
 	var_ensemble_period_1=dim_variance_n_Wrap(mean_ensemble_period_1_temp,0)
 	size_ensemble_period_1=equiv_sample_size (mean_ensemble_period_1_temp(lat|:,lon|:,time|:),sigr,0)
-	delete([/mean_ensemble_period_1_temp,mean_ensemble_period_2_temp/])
+	delete([/mean_ensemble_period_1_temp/])
 
 	if (KCM_flag .eq. 1) then
-		mean_KCM_fields=new((/4,180,360/),float)
+		mean_KCM_fields=new((/4,grid(1),grid(2)/),float)
 		do nn=0,3
 			mean_KCM_fields_temp=month_to_season(KCM_fields(time|:,ncl_join|nn,lat|:,lon|:),seasons(kk))
 			mean_KCM_fields(nn,:,:)=dim_avg_n_Wrap(mean_KCM_fields_temp,0)
@@ -342,6 +353,7 @@ end if
 if (plot_means .eq. 1) then
 print("plotting means")
 
+
 model=mean_model_fields_period_1
 ensemble=mean_ensemble_period_1
 name=model_name_period_1
@@ -350,10 +362,9 @@ if (observation_flag_period_1 .eq. 1) then
 	observation=mean_observation_period_1
 end if
 
-wks = gsn_open_wks("pdf" ,plot_dir+"/"+var+"_"+seasons(kk)+"_mean"+"_"+(pp+1))               ; open pdf file
+wks = gsn_open_wks("pdf",plot_dir+"/"+var+"_"+seasons(kk)+"_mean_"+flt2string((int2flt((stringtointeger(end_1)-30))))+"-"+end_1+"_"+(pp+1))               ; open pdf file
 
-plot= new (stringtointeger(ppp), graphic)      ; create graphical array
-
+plot= new (ppp, graphic)      ; create graphical array
 ;*****************************************************************************************
 
 res_mean                      	= True               	; plot mods desired
@@ -368,7 +379,6 @@ res_mean@cnLevelSelectionMode 	= "ManualLevels"		; manually set the contour leve
 res_mean@vpWidthF            	= 0.5          			; change aspect ratio of plot
 res_mean@vpHeightF           	= 0.3
 res_mean@mpCenterLonF		  	= 220 
-
 if (var .eq. "tos") then
 	res_mean@cnMinLevelValF  	= 0.					; set the minimum contour level
 	res_mean@cnMaxLevelValF  	= 30.					; set the maximum contour level
@@ -400,25 +410,29 @@ if (var .eq. "pr") then
 end if
 
 res_mean_Panel                  = True                   ; modify the panel plot
-res_mean_Panel@txString         = var+"_"+seasons(kk)+"_mean"      ; plot title
+res_mean_Panel@txString         = var+"_"+seasons(kk)+"_mean_"+flt2string((int2flt((stringtointeger(end_1)-30))))+"-"+end_1     ; plot title
 res_mean_Panel@gsnMaximize      = True                   ; make ps, eps, pdf, ... large
 res_mean_Panel@gsnPanelLabelBar = True                   ; add common label bar
 
 ;*****************************************************************************************
 
-do ii = 0,(stringtointeger(ppp)-1)
-	number_of_plot=ii+(stringtointeger(ppp)*(pp))
-	
-	if (ii+(pp*(stringtointeger(ppp))) .lt. model_count) then 	
+do ii = 0,ppp-1
+print(ii)
+	number_of_plot=ii+((ppp)*(pp))
+	if (ii+(pp*ppp) .lt. model_count-1) then 	
 		res_mean@tiMainString=name(number_of_plot)
 		plot(ii)  = gsn_csm_contour_map(wks,model(ii,:,:),res_mean)
 		last=ii		
 	end if
 	
-	if (pp .eq. ((number_of_pages)-1) .and. ii .eq. (stringtointeger(ppp)-1)) then
+	if (pp .eq. ((number_of_pages)-1) .and. ii .eq. (ppp-1)) then
+
 		n=1	
+
 		res_mean@tiMainString="ensemble_mean"
+
 		plot(last+n)  = gsn_csm_contour_map(wks,ensemble,res_mean)
+	
 		n=n+1
 		
 		if (observation_flag_period_1 .eq. 1 ) then			
@@ -436,9 +450,8 @@ do ii = 0,(stringtointeger(ppp)-1)
 		end if			
 	end if	
 end do; ii
-
 gsn_panel(wks,plot,(/rows,columns/),res_mean_Panel)               ; create panel plot
-delete([/model,ensemble/])
+delete([/model,ensemble,name/])
 
 end if
 
@@ -512,51 +525,39 @@ end if
 if (plot_bias_ensemble .eq. 1) then
 print("plotting bias against ensemble-mean")
 
-model_fields=[/mean_model_fields_period_1,mean_model_fields_period_2/]
-ensemble_fields=[/mean_ensemble_period_1,mean_ensemble_period_2/]
-var_model_fields=[/var_model_fields_period_1,var_model_fields_period_2/]
-var_ensemble_fields=[/var_ensemble_period_1,var_ensemble_period_2/]
-size_model_fields=[/size_model_fields_period_1,size_model_fields_period_2/]
-size_ensemble_fields=[/size_ensemble_period_1,size_ensemble_period_2/]
-model_names=[/model_name_period_1,model_name_period_2/]
-observation_flags=[/observation_flag_period_1,observation_flag_period_2/]
-
 model=mean_model_fields_period_1
 ensemble=mean_ensemble_period_1
 var_model=var_model_fields_period_1
 var_ensemble=var_ensemble_period_1
 size_model=size_model_fields_period_1
-size_ensemble=size_ensemble_fields[jj]
+size_ensemble=size_ensemble_period_1
 name=model_name_period_1
 observation_flag=observation_flag_period_1
 
-if (observation_flags[jj] .eq. 1) then
-	observation_fields=[/mean_observation_period_1,mean_observation_period_2/]
-	var_observation_fields=[/var_observation_period_1,var_observation_period_2/]
-	size_observation_fields=[/size_observation_period_1,size_observation_period_2/]
-	observation=observation_fields[jj]
-	var_observation=var_observation_fields[jj]
-	size_observation=size_observation_fields[jj]
+if (observation_flag_period_1 .eq. 1) then
+	observation=mean_observation_period_1
+	var_observation=var_observation_period_1
+	size_observation=size_observation_period_1
 end if
 
-wks = gsn_open_wks("pdf" ,plot_dir+"/"+var+"_"+seasons(kk)+"_mean_bias_against_ensemble_"+periods(jj)+"_"+(pp+1))               ; open pdf file
+wks = gsn_open_wks("pdf" ,plot_dir+"/"+var+"_"+seasons(kk)+"_mean_bias_against_ensemble_"+flt2string((int2flt((stringtointeger(end_1)-30))))+"-"+end_1+"_"+(pp+1))               ; open pdf file
 
-plot= new (stringtointeger(ppp), graphic)      ; create graphical array
-plot2= new (stringtointeger(ppp), graphic)      ; create graphical array
+plot= new (ppp, graphic)      ; create graphical array
+plot2= new (ppp, graphic)      ; create graphical array
 
 ;*****************************************************************************************
 
 res_bias_ensemble_Panel                  = True                   ; modify the panel plot
-res_bias_ensemble_Panel@txString         = var+"_"+periods(jj)+"_"+seasons(kk)+"_mean_bias_against_ensemble_mean  (model minus ensemble)"      ; plot title
+res_bias_ensemble_Panel@txString         = var+"_"+flt2string((int2flt((stringtointeger(end_1)-30))))+"-"+end_1+"_"+seasons(kk)+"_mean_bias_against_ensemble_mean  (model minus ensemble)"      ; plot title
 res_bias_ensemble_Panel@gsnMaximize      = True                   ; make ps, eps, pdf, ... large
 res_bias_ensemble_Panel@gsnPanelLabelBar = True                   ; add common label bar
 
 ;*****************************************************************************************
 
-do ii = 0,(stringtointeger(ppp)-1)
-	number_of_plot=ii+(stringtointeger(ppp)*(pp))
+do ii = 0,ppp-1
+	number_of_plot=ii+(ppp*pp)
 	
-	if (ii+(pp*(stringtointeger(ppp))) .lt. (model_count)) then 	
+	if (ii+(pp*ppp) .lt. model_count-2) then 	
 		res_bias@tiMainString=name(number_of_plot)
 		array=model(ii,:,:)
 		array=(/model(ii,:,:)-ensemble/)
@@ -569,7 +570,7 @@ do ii = 0,(stringtointeger(ppp)-1)
 		last=ii
 	end if
 	
-	if (pp .eq. ((number_of_pages)-1) .and. ii .eq. (stringtointeger(ppp)-1)) then	
+	if (pp .eq. ((number_of_pages)-1) .and. ii .eq. (ppp-1)) then	
 		n=1
 		
 		if (observation_flag(0) .eq. 1 ) then		
@@ -599,9 +600,8 @@ do ii = 0,(stringtointeger(ppp)-1)
 end do; ii   
 
 gsn_panel(wks,plot,(/rows,columns/),res_bias_ensemble_Panel)               ; create panel plot
-delete([/array,prob,model,ensemble,var_model,var_ensemble,size_model,size_ensemble/])
+delete([/array,prob,model,ensemble,var_model,var_ensemble,size_model,size_ensemble,name/])
 
-end do; jj
 end if
 
 
@@ -615,53 +615,37 @@ if (plot_bias_observations .eq. 1) then
 
 print("plotting bias against observations")
 
+model=mean_model_fields_period_1
+ensemble=mean_ensemble_period_1
+var_model=var_model_fields_period_1
+var_ensemble=var_ensemble_period_1
+size_model=size_model_fields_period_1
+size_ensemble=size_ensemble_period_1
+name=model_name_period_1
+observation_flag=observation_flag_period_1
 
-do jj = 0,1
-print(periods(jj))
+if (observation_flag .eq. 1 ) then
 
-model_fields=[/mean_model_fields_period_1,mean_model_fields_period_2/]
-ensemble_fields=[/mean_ensemble_period_1,mean_ensemble_period_2/]
-var_model_fields=[/var_model_fields_period_1,var_model_fields_period_2/]
-var_ensemble_fields=[/var_ensemble_period_1,var_ensemble_period_2/]
-size_model_fields=[/size_model_fields_period_1,size_model_fields_period_2/]
-size_ensemble_fields=[/size_ensemble_period_1,size_ensemble_period_2/]
-model_names=[/model_name_period_1,model_name_period_2/]
-observation_flags=[/observation_flag_period_1,observation_flag_period_2/]
+observation=mean_observation_period_1
+var_observation=var_observation_period_1
+size_observation=size_observation_period_1
 
-model=model_fields[jj]
-ensemble=ensemble_fields[jj]
-var_model=var_model_fields[jj]
-var_ensemble=var_ensemble_fields[jj]
-size_model=size_model_fields[jj]
-size_ensemble=size_ensemble_fields[jj]
-name=model_names[jj]
-observation_flag=observation_flags[jj]
+wks = gsn_open_wks("pdf" ,plot_dir+"/"+var+"_"+seasons(kk)+"_mean_bias_against_"+heading+"_"+flt2string((int2flt((stringtointeger(end_1)-30))))+"-"+end_1+"_"+(pp+1))               ; open pdf file
 
-if (observation_flag(0) .eq. 1 ) then
-
-observation_fields=[/mean_observation_period_1,mean_observation_period_2/]
-var_observation_fields=[/var_observation_period_1,var_observation_period_2/]
-size_observation_fields=[/size_observation_period_1,size_observation_period_2/]
-observation=observation_fields[jj]
-var_observation=var_observation_fields[jj]
-size_observation=size_observation_fields[jj]
-
-wks = gsn_open_wks("pdf" ,plot_dir+"/"+var+"_"+seasons(kk)+"_mean_bias_against_"+heading+"_"+periods(jj)+"_"+(pp+1))               ; open pdf file
-
-plot= new (stringtointeger(ppp), graphic)      ; create graphical array
-plot2= new (stringtointeger(ppp), graphic)      ; create graphical array
+plot= new (ppp, graphic)      ; create graphical array
+plot2= new (ppp, graphic)      ; create graphical array
 
 
 res_bias_observations_Panel                  = True                   ; modify the panel plot
-res_bias_observations_Panel@txString         = var+"_"+periods(jj)+"_"+seasons(kk)+"_mean_bias_against_"+heading+" (model minus observation)"      ; plot title
+res_bias_observations_Panel@txString         = var+"_"+flt2string((int2flt((stringtointeger(end_1)-30))))+"-"+end_1+"_"+seasons(kk)+"_mean_bias_against_"+heading+" (model minus observation)"      ; plot title
 res_bias_observations_Panel@gsnMaximize      = True                   ; make ps, eps, pdf, ... large
 res_bias_observations_Panel@gsnPanelLabelBar = True                   ; add common label bar
 
-do ii = 0,(stringtointeger(ppp)-1)
+do ii = 0,(ppp-1)
 
-	number_of_plot=ii+(stringtointeger(ppp)*(pp))
+	number_of_plot=ii+(ppp*(pp))
 	
-	if (ii+(pp*(stringtointeger(ppp))) .lt. (model_count)) then 
+	if (ii+(pp*(ppp)) .lt. (model_count)-1) then 
 		res_bias@tiMainString=name(number_of_plot)
 		array=model(ii,:,:)
 		array=(/model(ii,:,:)-observation/)
@@ -674,7 +658,7 @@ do ii = 0,(stringtointeger(ppp)-1)
 		last=ii		
 	end if
 	
-	if (pp .eq. ((number_of_pages)-1) .and. ii .eq. (stringtointeger(ppp)-1)) then	
+	if (pp .eq. ((number_of_pages)-1) .and. ii .eq. (ppp-1)) then	
 		n=1		
 		res_bias@tiMainString="ensemble_mean"
 		array=(/ensemble-observation/)
@@ -704,7 +688,6 @@ gsn_panel(wks,plot,(/rows,columns/),res_bias_observations_Panel)               ;
 delete([/array,prob,model,ensemble,var_model,var_ensemble,size_model,size_ensemble/])
 
 end if
-end do; jj
 end if
 
 ;**********************************************************************************
@@ -720,8 +703,8 @@ print("plotting bias against KCM")
 do xx = 0,3
 wks = gsn_open_wks("pdf" ,plot_dir+"/"+var+"_"+seasons(kk)+"_mean_bias_against_"+KCM_exp(xx)+"_"+(pp+1))               ; open pdf file
 
-plot= new (stringtointeger(ppp), graphic)      ; create graphical array
-plot2= new (stringtointeger(ppp), graphic)      ; create graphical array
+plot= new (ppp, graphic)      ; create graphical array
+plot2= new (ppp, graphic)      ; create graphical array
 
 res_bias@tiMainFontHeightF   = 0.015
 
@@ -735,10 +718,10 @@ do ii = 0,(stringtointeger(ppp)-1)
 	number_of_plot=ii+(stringtointeger(ppp)*(pp))
 	
 	if (ii+(pp*(stringtointeger(ppp))) .lt. (model_count)) then 
-		res_bias@tiMainString=model_name_period_2(number_of_plot)
-		array=mean_model_fields_period_2(ii,:,:)
-		array=(/mean_KCM_fields(xx,:,:)-mean_model_fields_period_2(ii,:,:)/)
-		prob=100.*(ttest(mean_KCM_fields(xx,:,:),var_KCM_fields(xx,:,:),size_KCM_fields(xx,:,:),mean_model_fields_period_2(ii,:,:),var_model_fields_period_2(ii,:,:),size_model_fields_period_2(ii,:,:),False,False))
+		res_bias@tiMainString=model_name_period_1(number_of_plot)
+		array=mean_model_fields_period_1(ii,:,:)
+		array=(/mean_KCM_fields(xx,:,:)-mean_model_fields_period_1(ii,:,:)/)
+		prob=100.*(ttest(mean_KCM_fields(xx,:,:),var_KCM_fields(xx,:,:),size_KCM_fields(xx,:,:),mean_model_fields_period_1(ii,:,:),var_model_fields_period_1(ii,:,:),size_model_fields_period_1(ii,:,:),False,False))
 		copyatt(prob,array)
 		plot(ii)  = gsn_csm_contour_map(wks,array,res_bias)
 		plot2(ii)=gsn_csm_contour(wks,prob, res_sig)
@@ -750,18 +733,18 @@ do ii = 0,(stringtointeger(ppp)-1)
 	if (pp .eq. ((number_of_pages)-1) .and. ii .eq. (stringtointeger(ppp)-1)) then	
 		n=1
 		res_bias@tiMainString="ensemble_mean"
-		array=(/mean_KCM_fields(xx,:,:)-mean_ensemble_period_2/)
-		prob=100.*(ttest(mean_KCM_fields(xx,:,:),var_KCM_fields(xx,:,:),size_KCM_fields(xx,:,:),mean_ensemble_period_2,var_ensemble_period_2,size_ensemble_period_2,False,False))
+		array=(/mean_KCM_fields(xx,:,:)-mean_ensemble_period_1/)
+		prob=100.*(ttest(mean_KCM_fields(xx,:,:),var_KCM_fields(xx,:,:),size_KCM_fields(xx,:,:),mean_ensemble_period_1,var_ensemble_period_1,size_ensemble_period_1,False,False))
 		plot(last+n)  = gsn_csm_contour_map(wks,array,res_bias)
 		plot2(last+n)=gsn_csm_contour(wks,prob, res_sig)
 		plot2(last+n)   = ShadeLtContour(plot2(last+n), 5, 3)
 		overlay (plot(last+n), plot2(last+n))
 		n=n+1
 			
-		if (observation_flag_period_2 .eq. 1) then		
+		if (observation_flag_period_1 .eq. 1) then		
 			res_bias@tiMainString=heading
-			array=(/mean_KCM_fields(xx,:,:)-mean_observation_period_2/)
-			prob=100.*(ttest(mean_KCM_fields(xx,:,:),var_KCM_fields(xx,:,:),size_KCM_fields(xx,:,:),mean_observation_period_2,var_observation_period_2,size_observation_period_2,False,False))
+			array=(/mean_KCM_fields(xx,:,:)-mean_observation_period_1/)
+			prob=100.*(ttest(mean_KCM_fields(xx,:,:),var_KCM_fields(xx,:,:),size_KCM_fields(xx,:,:),mean_observation_period_1,var_observation_period_1,size_observation_period_1,False,False))
 			plot(last+n)  = gsn_csm_contour_map(wks,array,res_bias)
 			plot2(last+n)=gsn_csm_contour(wks,prob, res_sig)
 			plot2(last+n)   = ShadeLtContour(plot2(last+n), 5, 3)
@@ -792,6 +775,8 @@ end if
 ;**********************************************************************************
 ;**********************************************************************************
 ; 20th century warming
+
+;;; This has to be redone, since the file structure has changed ;;;
 ;**********************************************************************************
 ;**********************************************************************************
 
@@ -882,14 +867,14 @@ end if
 ;**********************************************************************************
 ;**********************************************************************************
 
-delete([/mean_model_fields_period_1,mean_ensemble_period_1/])
+delete([/mean_model_fields_period_1,mean_ensemble_period_1,var_model_fields_period_1,size_model_fields_period_1/])
 if (KCM_flag .eq. 1) then
 	delete([/mean_KCM_fields/])
 end if
 kk=kk+1
 
 end do ; end kk
-delete([/model_fields_period_1,model_files_period_1,var_model_fields_period_1,size_model_fields_period_1/])
+delete([/model_fields_period_1,model_files_period_1/])
 if (KCM_flag .eq. 1) then
 	delete([/KCM_fields/])
 end if
