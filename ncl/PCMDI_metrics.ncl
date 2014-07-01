@@ -24,7 +24,7 @@ setfileoption("nc","SuppressClose",False)
 period="1980-2000"
 
 
-CMIP5_climatology_directory=CMIP_dir+"/processed/historical/Amon/" ; directory of processed CMIP5 climatologies
+CMIP5_climatology_directory=CMIP_dir+"/processed/CMIP5/historical/Amon/" ; directory of processed CMIP5 climatologies
 CMIP3_climatology_directory=CMIP_dir+"/processed/CMIP3/20c3m/atm/" ; directory of processed CMIP5 climatologies
 KCM_climatology_directory=CMIP_dir+"/data/KCM/"
 obs_climatology_directory=CMIP_dir+"/data/observations/"
@@ -37,8 +37,8 @@ variable_folder=variable_folder(::-1)
 variables=variables(::-1)
 obs_folder=obs_folder(::-1)
 
-number_of_CMIP5_models=stringtointeger(systemfunc ("ls -1 "+CMIP5_climatology_directory+variable_folder(0)+"/"+"*"+variables(0)+"*"+period+"*clim_remapbil_T42"+"*"+"| wc -l"))
-number_of_CMIP3_models=stringtointeger(systemfunc ("ls -1 "+CMIP3_climatology_directory+variable_folder(0)+"/"+"*"+variables(0)+"*1980-1999"+"*clim_remapbil_T42"+"*"+"| wc -l"))
+number_of_CMIP5_models=stringtointeger(systemfunc ("ls -1 "+CMIP5_climatology_directory+variable_folder(0)+"/climatologies/"+"*"+variables(0)+"*"+period+"*clim_remapbil_T42"+"*"+"| wc -l"))
+number_of_CMIP3_models=stringtointeger(systemfunc ("ls -1 "+CMIP3_climatology_directory+variable_folder(0)+"/climatologies/"+"*"+variables(0)+"*1980-1999"+"*clim_remapbil_T42"+"*"+"| wc -l"))
 number_of_KCM_models=stringtointeger(systemfunc ("ls -1 "+KCM_climatology_directory+"*"+variables(0)+"*clim_remapbil_T42"+"*"+"| wc -l"))
 
 ;*****************************************************************************************
@@ -50,12 +50,12 @@ obs_files=new((/dimsizes(variables),1/),string)
 
 
 do vv=0,dimsizes(variables)-1
-	all_files(vv,0:number_of_CMIP5_models-1)=systemfunc ("ls "+CMIP5_climatology_directory+variable_folder(vv)+"/"+"*"+variables(vv)+"*"+period+"*clim_remapbil_T42"+"*")
+	all_files(vv,0:number_of_CMIP5_models-1)=systemfunc ("ls "+CMIP5_climatology_directory+variable_folder(vv)+"/climatologies/"+"*"+variables(vv)+"*"+period+"*clim_remapbil_T42"+"*")
 	all_files(vv,number_of_CMIP5_models:(number_of_CMIP5_models+number_of_KCM_models)-1)=systemfunc("ls "+KCM_climatology_directory+"*"+variables(vv)+"*clim_remapbil_T42"+"*")
-	all_files(vv,(number_of_CMIP5_models+number_of_KCM_models):(number_of_CMIP5_models+number_of_CMIP3_models+number_of_KCM_models)-1)=systemfunc("ls "+CMIP3_climatology_directory+variable_folder(vv)+"/"+variables(vv)+"*"+"*clim_remapbil_T42"+"*")
+	all_files(vv,(number_of_CMIP5_models+number_of_KCM_models):(number_of_CMIP5_models+number_of_CMIP3_models+number_of_KCM_models)-1)=systemfunc("ls "+CMIP3_climatology_directory+variable_folder(vv)+"/climatologies/"+variables(vv)+"*"+"*clim_remapbil_T42"+"*")
 
 if (obs_folder(vv) .ne. "CERES_EBAF") then
-	obs_files(vv,0) = systemfunc ("ls "+obs_climatology_directory+obs_folder(vv)+"/"+"*"+variables(vv)+"*"+period+"*"+"clim_*"+"*T42"+"*")
+	obs_files(vv,0) = systemfunc ("ls "+obs_climatology_directory+obs_folder(vv)+"/"+"*"+variables(vv)+"*"+"1980-1999"+"*"+"clim_*"+"*T42"+"*")
 else
 	obs_files(vv,0) = systemfunc ("ls "+obs_climatology_directory+obs_folder(vv)+"/"+"*"+variables(vv)+"*"+"clim_*"+"*T42"+"*")
 end if
@@ -63,7 +63,6 @@ end if
 end do
 
 all_files_ordered=all_files	
-print(all_files)
 	
 do vv=0,dimsizes(variables)-1
 	all_files_ordered(vv,0:number_of_KCM_models-1)=array_append_record(\

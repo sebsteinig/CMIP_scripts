@@ -31,14 +31,14 @@ fi
 ##########################################################################################
 
 experiment="historical"				# CMIP5 experiments: historical,rcp45
-var="pr tas"				# CMIP variable to process (e.g. tos,tas,pr,psl,...)
+var="tos"				# CMIP variable to process (e.g. tos,tas,pr,psl,...)
 #var="tos"									# for full list see: http://cmip-pcmdi.llnl.gov/cmip5/docs/standard_output.pdf
 observations="NCEP"					# HadISST HadSST3 CMAP GPCP HadSLP2 MLD ERSST HadCRUT4 CERES_EBAF NCEP
 period=1870-2005					# time period for which the data gets processed
 climatology_period=1980-1999
 res=ERSST						# HadCRUT4, ERSST
 remap=remapbil
-actions="8" 						# choose which sections of the script get executed; see list above
+actions="11" 						# choose which sections of the script get executed; see list above
 
 ##########################################################################################	
 
@@ -785,9 +785,9 @@ fi
     
 if [ $actid -eq 10 ];then # make global mean and correlation plots
 
-mkdir -p $CMIP_dir/plots/${variable}/correlations
+mkdir -p $CMIP_dir/plots/correlations
 
-export plot_dir=$CMIP_dir/plots/${variable}/correlations
+export plot_dir=$CMIP_dir/plots/correlations
 export CMIP_dir
 export experiment
 
@@ -805,8 +805,8 @@ export plot_dir=$CMIP_dir/plots/${variable}/PCMDI_metrics
 export CMIP_dir
 export experiment
 
-l
-ncl $CMIP_dir/CMIP_scripts/ncl/PCMDI_metrics_4.0.ncl
+
+ncl $CMIP_dir/CMIP_scripts/ncl/PCMDI_metrics.ncl
 
 fi
 
