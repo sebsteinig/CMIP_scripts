@@ -1,8 +1,8 @@
-#!/bin/bash -xea
+#!/bin/bash
 
-#set -x
-#set -e
-#set -a
+set -x
+set -e
+set -a
 
 # This script will do the following actions:
 	# 1. create wget script for chosen $var and $experiment
@@ -31,24 +31,24 @@ fi
 ##########################################################################################
 
 experiment="historical"				# CMIP5 experiments: historical,rcp45
-var="rlut rsut"				# CMIP variable to process (e.g. tos,tas,pr,psl,...)
+var="pr tas"				# CMIP variable to process (e.g. tos,tas,pr,psl,...)
 #var="tos"									# for full list see: http://cmip-pcmdi.llnl.gov/cmip5/docs/standard_output.pdf
 observations="NCEP"					# HadISST HadSST3 CMAP GPCP HadSLP2 MLD ERSST HadCRUT4 CERES_EBAF NCEP
 period=1870-2005					# time period for which the data gets processed
 climatology_period=1980-1999
-res=HadCRUT4						# HadCRUT4, ERSST
+res=ERSST						# HadCRUT4, ERSST
 remap=remapbil
-actions="4" 						# choose which sections of the script get executed; see list above
+actions="8" 						# choose which sections of the script get executed; see list above
 
 ##########################################################################################	
 
 # choose plots ( 0 = no / 1 = yes )
-plot_seasons=0					# plot seasonal mean fields
-plot_means=1					# plot annual mean fields				
+plot_means=0					# plot annual mean fields
+plot_seasons=1					# plot seasonal mean fields				
 plot_bias_ensemble=1			# plot bias against ensemble mean
-plot_bias_observations=0		# plot bias against observations 	
+plot_bias_observations=1		# plot bias against observations 	
 plot_bias_KCM=0					# plot bias against KCM experiments
-#plot_change=0					# plot warming during 20th century
+plot_change=0					# plot warming during 20th century
 								# This has to be redone, since the file structure has changed!!! 
 
 ##########################################################################################
@@ -331,91 +331,91 @@ if [ $actid -eq 4 ];then # process data with cdo
 	fi
 		
     # calculate shortwave cloud radiative feedback fields if data for clear-sky and all-sky SW radiation is available
-	if [ -d $CMIP_dir/processed/$experiment/Amon/rsut/climatologies ] && [ -d cd $CMIP_dir/processed/$experiment/Amon/rsutcs/climatologies ] && ( [ "$variable" == "rsut" ] || [ "$variable" == "rsutcs" ] ); then 		
+	if [ -d $CMIP_dir/processed/CMIP5/$experiment/Amon/rsut/climatologies ] && [ -d $CMIP_dir/processed/CMIP5/$experiment/Amon/rsutcs/climatologies ] && ( [ "$variable" == "rsut" ] || [ "$variable" == "rsutcs" ] ); then 		
 	    # create folders for new sw_cre variable or delete old data
-	    mkdir -p $CMIP_dir/processed/$experiment/Amon/sw_cre/climatologies
-		mkdir -p $CMIP_dir/processed/$experiment/Amon/sw_cre/original_resolution
-		mkdir -p $CMIP_dir/processed/$experiment/Amon/sw_cre/remapped_to_${res}	
-		rm -f $CMIP_dir/processed/$experiment/Amon/sw_cre/climatologies/*
-		rm -f $CMIP_dir/processed/$experiment/Amon/sw_cre/original_resolution/*
-		rm -f $CMIP_dir/processed/$experiment/Amon/sw_cre/remapped_to_${res}/*
+	    mkdir -p $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/climatologies
+		mkdir -p $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/original_resolution
+		mkdir -p $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/remapped_to_${res}	
+		rm -f $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/climatologies/*
+		rm -f $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/original_resolution/*
+		rm -f $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/remapped_to_${res}/*
 	
 	    # go the climatologies and subtract rsut from rsutcs for each model
-		cd $CMIP_dir/processed/$experiment/Amon/rsutcs/climatologies		
+		cd $CMIP_dir/processed/CMIP5/$experiment/Amon/rsutcs/climatologies		
 		for i in *${start_climatology}-${end_climatology}*.nc; do
 			j=`echo $i | sed 's/rsutcs/rsut/'`
 			k=`echo $i | sed 's/rsutcs/sw_cre/'`
-			cdo -chname,rsutcs,sw_cre -sub $i $CMIP_dir/processed/$experiment/Amon/rsut/climatologies/$j $CMIP_dir/processed/$experiment/Amon/sw_cre/climatologies/$k
+			cdo -chname,rsutcs,sw_cre -sub $i $CMIP_dir/processed/CMIP5/$experiment/Amon/rsut/climatologies/$j $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/climatologies/$k
 		done
 	
 	    # do the same for the fields with original resolution
-		cd $CMIP_dir/processed/$experiment/Amon/rsutcs/original_resolution		
+		cd $CMIP_dir/processed/CMIP5/$experiment/Amon/rsutcs/original_resolution		
 		for i in *.nc; do
 			j=`echo $i | sed 's/rsutcs/rsut/'`
 			k=`echo $i | sed 's/rsutcs/sw_cre/'`
-			cdo -chname,rsutcs,sw_cre -sub $i $CMIP_dir/processed/$experiment/Amon/rsut/original_resolution/$j $CMIP_dir/processed/$experiment/Amon/sw_cre/original_resolution/$k
+			cdo -chname,rsutcs,sw_cre -sub $i $CMIP_dir/processed/CMIP5/$experiment/Amon/rsut/original_resolution/$j $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/original_resolution/$k
 		done
 	
 	    # do the same for the remapped fields
-		cd $CMIP_dir/processed/$experiment/Amon/rsutcs/remapped_to_${res}		
+		cd $CMIP_dir/processed/CMIP5/$experiment/Amon/rsutcs/remapped_to_${res}		
 		for i in *${period}*.nc; do
 			j=`echo $i | sed 's/rsutcs/rsut/'`
 			k=`echo $i | sed 's/rsutcs/sw_cre/'`
-			cdo -chname,rsutcs,sw_cre -sub $i $CMIP_dir/processed/$experiment/Amon/rsut/remapped_to_${res}/$j $CMIP_dir/processed/$experiment/Amon/sw_cre/remapped_to_${res}/$k
+			cdo -chname,rsutcs,sw_cre -sub $i $CMIP_dir/processed/CMIP5/$experiment/Amon/rsut/remapped_to_${res}/$j $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/remapped_to_${res}/$k
 		done
 	
 	    # calculate ensemble mean for the climatologies
-		cd $CMIP_dir/processed/$experiment/Amon/sw_cre/climatologies/
+		cd $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/climatologies/
 		rm -f *mmm*${start_climatology}-${end_climatology}*		
 		cdo ensmean *${start_climatology}-${end_climatology}*T42* sw_cre_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc	
 	
 	    # calculate ensemble mean for the remapped fields
-		cd $CMIP_dir/processed/$experiment/Amon/sw_cre/remapped_to_${res}/
+		cd $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/remapped_to_${res}/
 		rm -f *mmm*${period}*		
 		cdo ensmean *${period}*${res}* sw_cre_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}.nc	
     fi	
 		
     # do the same as above, but for the long wave cloud radiative effect
-	if [ -d $CMIP_dir/processed/$experiment/Amon/rlut/climatologies ] && [ -d cd $CMIP_dir/processed/$experiment/Amon/rlutcs/climatologies ] && ( [ "$variable" == "rlut" ] || [ "$variable" == "rlutcs" ] ); then 	
+	if [ -d $CMIP_dir/processed/CMIP5/$experiment/Amon/rlut/climatologies ] && [ -d $CMIP_dir/processed/CMIP5/$experiment/Amon/rlutcs/climatologies ] && ( [ "$variable" == "rlut" ] || [ "$variable" == "rlutcs" ] ); then 	
 	    # create folders for new sw_cre variable or delete old data
-	    mkdir -p $CMIP_dir/processed/$experiment/Amon/lw_cre/climatologies
-		mkdir -p $CMIP_dir/processed/$experiment/Amon/lw_cre/original_resolution
-		mkdir -p $CMIP_dir/processed/$experiment/Amon/lw_cre/remapped_to_${res}	
-		rm -f $CMIP_dir/processed/$experiment/Amon/lw_cre/climatologies/*
-		rm -f $CMIP_dir/processed/$experiment/Amon/lw_cre/original_resolution/*
-		rm -f $CMIP_dir/processed/$experiment/Amon/lw_cre/remapped_to_${res}/*
+	    mkdir -p $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/climatologies
+		mkdir -p $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/original_resolution
+		mkdir -p $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/remapped_to_${res}	
+		rm -f $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/climatologies/*
+		rm -f $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/original_resolution/*
+		rm -f $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/remapped_to_${res}/*
 	
 	    # go the climatologies and subtract rlut from rlutcs for each model
-		cd $CMIP_dir/processed/$experiment/Amon/rlutcs/climatologies		
+		cd $CMIP_dir/processed/CMIP5/$experiment/Amon/rlutcs/climatologies		
 		for i in *${start_climatology}-${end_climatology}*.nc; do
 			j=`echo $i | sed 's/rlutcs/rlut/'`
 			k=`echo $i | sed 's/rlutcs/lw_cre/'`
-			cdo -chname,rlutcs,lw_cre -sub $i $CMIP_dir/processed/$experiment/Amon/rlut/climatologies/$j $CMIP_dir/processed/$experiment/Amon/lw_cre/climatologies/$k
+			cdo -chname,rlutcs,lw_cre -sub $i $CMIP_dir/processed/CMIP5/$experiment/Amon/rlut/climatologies/$j $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/climatologies/$k
 		done
 	
 	    # do the same for the fields with original resolution
-		cd $CMIP_dir/processed/$experiment/Amon/rlutcs/original_resolution		
+		cd $CMIP_dir/processed/CMIP5/$experiment/Amon/rlutcs/original_resolution		
 		for i in *.nc; do
 			j=`echo $i | sed 's/rlutcs/rlut/'`
 			k=`echo $i | sed 's/rlutcs/lw_cre/'`
-			cdo -chname,rlutcs,lw_cre -sub $i $CMIP_dir/processed/$experiment/Amon/rlut/original_resolution/$j $CMIP_dir/processed/$experiment/Amon/lw_cre/original_resolution/$k
+			cdo -chname,rlutcs,lw_cre -sub $i $CMIP_dir/processed/CMIP5/$experiment/Amon/rlut/original_resolution/$j $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/original_resolution/$k
 		done
 	
 	    # do the same for the remapped fields
-		cd $CMIP_dir/processed/$experiment/Amon/rlutcs/remapped_to_${res}		
+		cd $CMIP_dir/processed/CMIP5/$experiment/Amon/rlutcs/remapped_to_${res}		
 		for i in *${period}*.nc; do
 			j=`echo $i | sed 's/rlutcs/rlut/'`
 			k=`echo $i | sed 's/rlutcs/lw_cre/'`
-			cdo -chname,rlutcs,lw_cre -sub $i $CMIP_dir/processed/$experiment/Amon/rlut/remapped_to_${res}/$j $CMIP_dir/processed/$experiment/Amon/lw_cre/remapped_to_${res}/$k
+			cdo -chname,rlutcs,lw_cre -sub $i $CMIP_dir/processed/CMIP5/$experiment/Amon/rlut/remapped_to_${res}/$j $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/remapped_to_${res}/$k
 		done
 	
 	    # calculate ensemble mean for the climatologies
-		cd $CMIP_dir/processed/$experiment/Amon/lw_cre/climatologies/
+		cd $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/climatologies/
 		rm -f *mmm*${start_climatology}-${end_climatology}*		
 		cdo ensmean *${start_climatology}-${end_climatology}*T42* lw_cre_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc	
 	
 	    # calculate ensemble mean for the remapped fields
-		cd $CMIP_dir/processed/$experiment/Amon/lw_cre/remapped_to_${res}/
+		cd $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/remapped_to_${res}/
 		rm -f *mmm*${period}*		
 		cdo ensmean *${period}*${res}* lw_cre_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}.nc	
     fi
