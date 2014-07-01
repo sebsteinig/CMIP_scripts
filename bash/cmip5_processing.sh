@@ -606,11 +606,14 @@ fi
     
 if [ $actid -eq 7 ];then # calculate global means and correlations
 	
+	#calculate number of decades in the specified period
     number_of_years=$((end_period - start_period))
     number_of_decades=$((number_of_years/10))
 
-    if [ $((number_of_decades*10)) == $((number_of_years)) ]; then # check if number of years is a multiple of 10
+	# check if number of years is a multiple of 10
+    if [ $((number_of_decades*10)) == $((number_of_years)) ]; then 
 	    echo ${number_of_decades}
+	# if it is not evenly dividable by 10 add one decade for the last years 
     else
 	    years_last_period=$((number_of_years-(number_of_decades*10)))
 	    number_of_decades=$((number_of_decades+1))
@@ -624,14 +627,20 @@ if [ $actid -eq 7 ];then # calculate global means and correlations
 	mkdir -p trends
 	cd remapped_to_${res}
 	
+	# specifiy observational data set to which the pattern correlation should be calculated
 	obs_data="ERSST" # ERSST HadISST
 
 	if [ "$variable" == "tos" ]; then # process tos observations
+		# select specified period
 		cdo -selyear,${start_period}/${end_period} -selgrid,1 $CMIP_dir/data/observations/ERSST/ersstv3b.mnmean.nc $CMIP_dir/data/observations/ERSST/ERSST_${start_period}-${end_period}.nc
+		# calculate global mean
 		cdo fldmean $CMIP_dir/data/observations/ERSST/ERSST_${start_period}-${end_period}.nc ../global_mean/ERSST_global_mean_${start_period}-${end_period}.nc
+		# subtract global mean for each timestep
 		cdo sub $CMIP_dir/data/observations/ERSST/ERSST_${start_period}-${end_period}.nc -enlarge,$CMIP_dir/data/observations/ERSST/ERSST_${start_period}-${end_period}.nc ../global_mean/ERSST_global_mean_${start_period}-${end_period}.nc ../global_mean_removed/ERSST_global_mean_removed_${start_period}-${end_period}.nc
+		# calculate climatology of anomaly fields
 		cdo ymonmean ../global_mean_removed/ERSST_global_mean_removed_${start_period}-${end_period}.nc ../global_mean_removed/ERSST_climatology_${start_period}-${end_period}.nc
-	
+		
+		# repeat the following steps for each decade
 		decade=1
 		while [ $decade -le ${number_of_decades} ]; do
 			echo $decade
@@ -646,10 +655,13 @@ if [ $actid -eq 7 ];then # calculate global means and correlations
 		
 			for data_set in ${obs_data} ; do	
 				if [ $decade -eq 1 ]; then
+					# calculate trends of the annual mean fields
 					cdo -trend -yearmean -selyear,${first_year}/${end_period} -selvar,sst ../global_mean/${data_set}_global_mean_${start_period}-${end_period}.nc a.nc ../trends/${data_set}_global_mean_decadal_trends_${start_period}-${end_period}.nc
 					rm a.nc
 				else
+					# calculate trends of the annual mean fields
 					cdo -trend -yearmean -selyear,${first_year}/${end_period} -selvar,sst ../global_mean/${data_set}_global_mean_${start_period}-${end_period}.nc a.nc ../trends/${data_set}_global_mean_trends_${first_year}-${end_period}.nc
+					# starting with the second period, the trends will be added to the above created file to store all decadal values in 1 file
 					cdo cat ../trends/${data_set}_global_mean_trends_${first_year}-${end_period}.nc ../trends/${data_set}_global_mean_decadal_trends_${start_period}-${end_period}.nc
 					rm a.nc
 					rm ../trends/${data_set}_global_mean_trends_${first_year}-${end_period}.nc
@@ -659,15 +671,18 @@ if [ $actid -eq 7 ];then # calculate global means and correlations
 		done	
 	fi
 	
+	# in general repeat the above calculations for each model
 	for data_set in ${obs_data} ; do
 		for model_file in *${remap}_${res}.nc; do 
 			model_name=$(echo "${model_file}" | cut -d'_' -f3)
 	
-			if [ "$variable" == "tas" ]; then # express tas fields as anomalies to 1961-1990 to compare with HadCRUT4	
+			# express tas fields as anomalies to 1961-1990 to compare with HadCRUT4	
+			if [ "$variable" == "tas" ]; then 
 				mv ${model_file} ${model_file}_temp
 				cdo sub ${model_file}_temp -timmean -selyear,1961/1990 ${model_file}_temp ${model_file}	
 			fi
 	
+			# again calculate anomalies and anomaly-climatologies
 			cdo fldmean ${model_file} ../global_mean/${variable}_global_mean_${start_period}-${end_period}_${model_name}_${remap}_${res}.nc
 			cdo sub ${model_file} -enlarge,${model_file} ../global_mean/${variable}_global_mean_${start_period}-${end_period}_${model_name}_${remap}_${res}.nc ../global_mean_removed/${variable}_global_mean_removed_${start_period}-${end_period}_${model_name}_${remap}_${res}.nc
 			cdo ymonmean ../global_mean_removed/${variable}_global_mean_removed_${start_period}-${end_period}_${model_name}_${remap}_${res}.nc ../global_mean_removed/${variable}_climatology_${start_period}-${end_period}_${model_name}_${remap}_${res}.nc
@@ -684,6 +699,7 @@ if [ $actid -eq 7 ];then # calculate global means and correlations
 				echo ${first_year}
 				echo ${last_year}
 		
+				# calculate trends, anomaly patterns for each decade and pattern correlation for different regions
 				if [ $decade -eq 1 ]; then
 					cdo -trend -yearmean -selyear,${first_year}/${end_period} -selvar,${variable} ../global_mean/${variable}_global_mean_${start_period}-${end_period}_${model_name}_${remap}_${res}.nc a.nc ../trends/${variable}_global_mean_decadal_trends_${start_period}-${end_period}_${model_name}_${remap}_${res}.nc
 					rm a.nc
@@ -695,6 +711,8 @@ if [ $actid -eq 7 ];then # calculate global means and correlations
 					cdo -f nc -fldcor -sellonlatbox,0,360,-70,70 ../global_mean_removed/${data_set}_global_mean_removed_${start_period}-${end_period}_decadal_patterns.nc -sellonlatbox,0,360,-70,70 ../global_mean_removed/${variable}_global_mean_removed_${start_period}-${end_period}_decadal_patterns_${model_name}_${remap}_${res}.nc ../correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_period}-${end_period}_${model_name}_${remap}_${res}_70.nc
 					cdo -f nc -fldcor -sellonlatbox,0,360,0,90 ../global_mean_removed/${data_set}_global_mean_removed_${start_period}-${end_period}_decadal_patterns.nc -sellonlatbox,0,360,0,90 ../global_mean_removed/${variable}_global_mean_removed_${start_period}-${end_period}_decadal_patterns_${model_name}_${remap}_${res}.nc ../correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_period}-${end_period}_${model_name}_${remap}_${res}_NH.nc
 					cdo -f nc -fldcor -sellonlatbox,0,360,-90,0 ../global_mean_removed/${data_set}_global_mean_removed_${start_period}-${end_period}_decadal_patterns.nc -sellonlatbox,0,360,-90,0 ../global_mean_removed/${variable}_global_mean_removed_${start_period}-${end_period}_decadal_patterns_${model_name}_${remap}_${res}.nc ../correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_period}-${end_period}_${model_name}_${remap}_${res}_SH.nc		
+				
+				# repeat the above steps for the other decades and cat them to the file create for the first decade
 				else
 					cdo -trend -yearmean -selyear,${first_year}/${end_period} -selvar,${variable} ../global_mean/${variable}_global_mean_${start_period}-${end_period}_${model_name}_${remap}_${res}.nc a.nc ../trends/${variable}_global_mean_trends_${first_year}-${end_period}_${model_name}_${remap}_${res}.nc
 									
@@ -713,7 +731,8 @@ if [ $actid -eq 7 ];then # calculate global means and correlations
 					cdo cat ../correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${first_year}-${last_year}_${model_name}_${remap}_${res}_90.nc ../correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_period}-${end_period}_${model_name}_${remap}_${res}_90.nc
 					cdo cat ../correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${first_year}-${last_year}_${model_name}_${remap}_${res}_NH.nc ../correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_period}-${end_period}_${model_name}_${remap}_${res}_NH.nc
 					cdo cat ../correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${first_year}-${last_year}_${model_name}_${remap}_${res}_SH.nc ../correlations/${variable}_decadal_pattern_correlation_to_${data_set}_${start_period}-${end_period}_${model_name}_${remap}_${res}_SH.nc
-		
+					
+					# clean up
 					rm a.nc
 					rm ../trends/${variable}_global_mean_trends_${first_year}-${end_period}_${model_name}_${remap}_${res}.nc
 					rm ../global_mean_removed/${data_set}_global_mean_removed_${first_year}-${last_year}_decadal_patterns.nc 
@@ -726,6 +745,7 @@ if [ $actid -eq 7 ];then # calculate global means and correlations
 				decade=$(( $decade + 1 ))	
 			done
 	
+			# undo temporal renaming for tas models
 			if [ "$variable" == "tas" ]; then 	
 				mv ${model_file}_temp ${model_file}		
 			fi	
