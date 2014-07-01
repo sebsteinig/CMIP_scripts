@@ -17,9 +17,9 @@ fi
 	
 ##########################################################################################
  
-experiment="20c3m"					# CMIP3 experiments: 20c3m
-var="psl pr rlut rsut rlutcs rsutcs tos"
-period=1900-1999 					# time period for which the data gets processed
+experiment="20c3m"							# CMIP3 experiments: 20c3m
+var="psl pr rlut rsut rlutcs rsutcs tos"	# CMIP3 variables (the same variable names as for CMiP5)
+period=1900-1999 						# time period for which the data gets processed
 climatology_period=1980-1999
 remap=remapbil
 res=HadCRUT4
