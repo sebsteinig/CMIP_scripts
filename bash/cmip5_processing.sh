@@ -801,7 +801,7 @@ if [ $actid -eq 11 ];then # make PCMDI metric plots
 
 mkdir -p $CMIP_dir/plots/${variable}/PCMDI_metrics
 
-export plot_dir=$CMIP_dir/plots/${variable}/PCMDI_metrics
+export plot_dir=$CMIP_dir/plots/PCMDI_metrics
 export CMIP_dir
 export experiment
 
