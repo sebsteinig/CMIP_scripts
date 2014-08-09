@@ -31,14 +31,14 @@ fi
 ##########################################################################################
 
 experiment="piControl"				# CMIP5 experiments: historical,rcp45
-var="pr"				# CMIP variable to process (e.g. tos,tas,pr,psl,...)
+var="tas"				# CMIP variable to process (e.g. tos,tas,pr,psl,...)
 #var="tos"									# for full list see: http://cmip-pcmdi.llnl.gov/cmip5/docs/standard_output.pdf
 observations="NCEP"					# HadISST HadSST3 CMAP GPCP HadSLP2 MLD ERSST HadCRUT4 CERES_EBAF NCEP
 period=1870-2005					# time period for which the data gets processed
 climatology_period=1980-1999
-res=ERSST						# HadCRUT4, ERSST
+res=HadCRUT4						# HadCRUT4, ERSST
 remap=remapbil
-actions="2" 						# choose which sections of the script get executed; see list above
+actions="3 4" 						# choose which sections of the script get executed; see list above
 
 ##########################################################################################	
 
@@ -180,10 +180,8 @@ if [ $actid -eq 4 ];then # process data with cdo
 	
     mkdir -p $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution
     mkdir -p $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}
-    mkdir -p $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies
 	rm -f $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution/*      # remove old data
 	rm -f $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}/*       # remove old data
-	rm -f $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/*       # remove old data
 	
 	
 	model_array=( $(find . -type d -maxdepth 1 -exec printf "{} " \;) )		# create array containing all model names
@@ -262,35 +260,44 @@ if [ $actid -eq 4 ];then # process data with cdo
             	    rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_temp.nc
             	fi
 				
-				# remap to T42 grid and calculate ${start_climatology}-${end_climatology} climatologies, according to the PCMDI metrics (see IPCC, figure 9.7)
-				if [ "$variable" == "zg" ]; then
-					# don't calculate ensemble mean for 4D variable, since they don't get processed (see below)
-					ensemble_mean_flag=0
-					# only consider geopotential height at 500 hPa
-					cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,50000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_500_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
-				elif [ "$variable" == "ua" ] || [ "$variable" == "va" ] || [ "$variable" == "ta" ]; then 
-					# don't calculate ensemble mean for 4D variable, since they don't get processed (see below
-					ensemble_mean_flag=0
-					# only consider values at 200 and 850 hPa
-					cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,85000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_850_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
-					cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,20000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_200_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
-				else
-					cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
-				fi			
+				if [ "$experiment" != "piControl" ]; then # don't calculate climatologies for piControl experiment
+					# remap to T42 grid and calculate ${start_climatology}-${end_climatology} climatologies, according to the PCMDI metrics (see IPCC, figure 9.7)
+				    mkdir -p $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies
+					rm -f $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/*       # remove old data
+					
+					if [ "$variable" == "zg" ]; then
+						# don't calculate ensemble mean for 4D variable, since they don't get processed (see below)
+						ensemble_mean_flag=0
+						# only consider geopotential height at 500 hPa
+						cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,50000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_500_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+					elif [ "$variable" == "ua" ] || [ "$variable" == "va" ] || [ "$variable" == "ta" ]; then 
+						# don't calculate ensemble mean for 4D variable, since they don't get processed (see below
+						ensemble_mean_flag=0
+						# only consider values at 200 and 850 hPa
+						cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,85000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_850_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+						cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -sellevel,20000 -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_200_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+					else
+						cdo -${remap},t42grid -ymonmean -selyear,${start_climatology}/${end_climatology} -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc
+					fi	
+				fi		
             	
 				# process model data only if it starts before selected period and is not a 4D-variable
             	if [ $first_model_year -le ${start_period} ] && ( [ "$variable" != "zg" ]  ||  [ "$variable" != "ta" ] || \
-					[ "$variable" != "ua" ] || [ "$variable" != "va" ] ); then 
+					[ "$variable" != "ua" ] || [ "$variable" != "va" ] ) && [ "$experiment" != "piControl" ]; then 
 					# remap model field to observational data set for comparability; also cut time period selected in the beginning (period)
 					cdo -${remap},${remap_reference} -selyear,${start_period}/${end_period} -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}.nc
            		fi
+				
+				if [ "$experiment" == "piControl" ]; then
+					cdo -${remap},${remap_reference} -selyear,$first_model_year/$last_model_year -selvar,${variable} ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${first_model_year}-${last_model_year}_${remap}_${res}.nc
+				fi
 				
            		rm ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1.nc # delete temporal data
             esac
 		
 		cd ../..
 		# if model data got processed, move it from data to processed directory
-		if [ -f $CMIP_dir/data/CMIP5/$experiment/$realm/$variable/$model/processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}.nc ]; then 
+		if [ -f $CMIP_dir/data/CMIP5/$experiment/$realm/$variable/$model/processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}.nc ] || [ -f $CMIP_dir/data/CMIP5/$experiment/$realm/$variable/$model/processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${first_model_year}-${last_model_year}_${remap}_${res}.nc ]; then 
 			mv ${model}/processed/*.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}; 
 		fi
 		rm -r ${model}/processed
