@@ -6,7 +6,9 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 
 begin
 
-data_dir="/Volumes/HiWi_data/CMIP/data/observations/Mann_et_al_2009/"
+;data_dir="/Volumes/HiWi_data/CMIP/data/observations/Mann_et_al_2009/"
+data_dir="/Users/stein/Documents/Uni/Master/HiWi/CMIP/data/observations/Mann_et_al_2009/"
+
 data_file=data_dir+"allproxyfieldrecon"
 lonlat_file=data_dir+"longlat"
 
@@ -46,7 +48,7 @@ lon@long_name="longitude"
 lon@units="degrees_east"
 lon@axis="X"
 
-time@units="years since 851-01-01 00:00:00"
+time@units="years since 0-01-01 00:00:00"
 time@long_name="time"
 
 mann_reconstruction@long_name="Near-Surface Air Temperature"

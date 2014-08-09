@@ -7,8 +7,8 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
 
 begin
 
-CMIP_dir="/Volumes/HiWi_data/CMIP/"
-gm_directory=CMIP_dir+"processed/CMIP5/past1000/Amon/tas/global_mean/"
+CMIP_dir="/Users/stein/Documents/Uni/Master/HiWi/CMIP/"
+gm_directory=CMIP_dir+"processed/CMIP5/past1000/Amon/tas/global_mean_decadal_mean/"
 gm_files = systemfunc ("ls "+gm_directory+"*0851-2000"+"*.nc")
 gm=addfiles(gm_files,"r")
 ListSetType (gm, "join")
