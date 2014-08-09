@@ -30,15 +30,15 @@ fi
 	
 ##########################################################################################
 
-experiment="historical"				# CMIP5 experiments: historical,rcp45
-var="tos"				# CMIP variable to process (e.g. tos,tas,pr,psl,...)
+experiment="piControl"				# CMIP5 experiments: historical,rcp45
+var="pr"				# CMIP variable to process (e.g. tos,tas,pr,psl,...)
 #var="tos"									# for full list see: http://cmip-pcmdi.llnl.gov/cmip5/docs/standard_output.pdf
 observations="NCEP"					# HadISST HadSST3 CMAP GPCP HadSLP2 MLD ERSST HadCRUT4 CERES_EBAF NCEP
 period=1870-2005					# time period for which the data gets processed
 climatology_period=1980-1999
 res=ERSST						# HadCRUT4, ERSST
 remap=remapbil
-actions="11" 						# choose which sections of the script get executed; see list above
+actions="2" 						# choose which sections of the script get executed; see list above
 
 ##########################################################################################	
 
