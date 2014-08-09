@@ -12,7 +12,7 @@ set -a
 	
 	
 if [ $(whoami) = "stein" ]; then            # check for system/user and adapt CMIP path  
-    CMIP_dir="/Volumes/HiWi_data/CMIP"
+    CMIP_dir="/Users/stein/Documents/Uni/Master/HiWi/CMIP"
     echo "user: stein"
 elif [ $(whoami) = "smomw200" ]; then
     CMIP_dir="/gfs/scratch/smomw200/CMIP"
@@ -30,7 +30,7 @@ period=0851-1849					# time period for which the data gets processed
 climatology_period=0851-1849
 res=HadCRUT4						# HadCRUT4, ERSST
 remap=remapbil
-actions="3 4" 						# choose which sections of the script get executed; see list above
+actions="4" 						# choose which sections of the script get executed; see list above
 
 ##########################################################################################	
 
@@ -176,13 +176,11 @@ if [ $actid -eq 4 ];then # process data with cdo
     mkdir -p $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}_monthly_mean
 	mkdir -p $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}_annual_mean
     mkdir -p $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}_decadal_mean
-    mkdir -p $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies
 	rm -f $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/original_resolution/*      # remove old data
 	rm -f $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}/*       # remove old data
 	rm -f $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}_monthly_mean/*       # remove old data
 	rm -f $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}_annual_mean/*       # remove old data
 	rm -f $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}_decadal_mean/*       # remove old data
-	rm -f $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies/*       # remove old data
 	
 	
 	model_array=( $(find . -type d -maxdepth 1 -exec printf "{} " \;) )		# create array containing all model names
@@ -274,10 +272,10 @@ if [ $actid -eq 4 ];then # process data with cdo
 		
 		cd ../..
 		# if model data got processed, move it from data to processed directory
-		if [ -f $CMIP_dir/data/CMIP5/$experiment/$realm/$variable/$model/processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}:monthly_mean.nc ]; then 
-			mv ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}_monthly_mean.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}_monthly_mean
-			mv ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}_annual_mean.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}_annual_mean
-			mv ${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}_decadal_mean.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}_decadal_mean
+		if [ -f $CMIP_dir/data/CMIP5/$experiment/$realm/$variable/$model/processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}.nc ]; then 
+			mv ${model}/processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}_monthly_mean
+			mv ${model}/processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}_annual_mean.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}_annual_mean
+			mv ${model}/processed/${variable}_${realm}_${model}_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}_decadal_mean.nc $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}_decadal_mean
 		fi
 		rm -r ${model}/processed
 		# remove the individual model folders -> change to file list as obtained by the wget script
@@ -295,117 +293,20 @@ if [ $actid -eq 4 ];then # process data with cdo
 	unset i
 	
 	if [ ${ensemble_mean_flag} -eq 1 ]; then # remove old ensemble mean and calculate new one
-	    cd $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}/
-	    rm -f ${variable}*mmm*${period}*${res}*
-		# HadGEM models get excluded, since they only provide data until 200511 -> different number of timesteps than other models
-	    if [ "$variable" == "rlutcs" ] || [ "$variable" == "rsutcs" ] || [ "$variable" == "rsut" ] || [ "$variable" == "rlut" ]; then
-			cdo ensmean $(ls ${variable}*${period}*${res}* |grep -vi "HadGEM" |grep -vi "CMCC-CESM" |grep -vi "CMCC-CM") ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}.nc
-		else
-			cdo ensmean $(ls ${variable}*${period}*${res}* |grep -vi "HadGEM") ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}.nc
-		fi
-		cd $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/climatologies
-		rm -f ${variable}*mmm*${start_climatology}-${end_climatology}*
-		if [ "$variable" == "zg" ]; then 
-			cdo ensmean ${variable}*500*${start_climatology}-${end_climatology}*T42* ${variable}_500_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc	
-		elif [ "$variable" == "ua" ] || [ "$variable" == "va" ] || [ "$variable" == "ta" ]; then 
-			cdo ensmean ${variable}*850*${start_climatology}-${end_climatology}*T42* ${variable}_850_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc	
-			cdo ensmean ${variable}*200*${start_climatology}-${end_climatology}*T42* ${variable}_200_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc	
-		else
-			cdo ensmean ${variable}*${start_climatology}-${end_climatology}*T42* ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc	
-		fi
 		
-	fi
+		dir_list="monthly_mean annual_mean decadal_mean"
 		
-    # calculate shortwave cloud radiative feedback fields if data for clear-sky and all-sky SW radiation is available
-	if [ -d $CMIP_dir/processed/CMIP5/$experiment/Amon/rsut/climatologies ] && [ -d $CMIP_dir/processed/CMIP5/$experiment/Amon/rsutcs/climatologies ] && ( [ "$variable" == "rsut" ] || [ "$variable" == "rsutcs" ] ); then 		
-	    # create folders for new sw_cre variable or delete old data
-	    mkdir -p $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/climatologies
-		mkdir -p $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/original_resolution
-		mkdir -p $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/remapped_to_${res}	
-		rm -f $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/climatologies/*
-		rm -f $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/original_resolution/*
-		rm -f $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/remapped_to_${res}/*
-	
-	    # go the climatologies and subtract rsut from rsutcs for each model
-		cd $CMIP_dir/processed/CMIP5/$experiment/Amon/rsutcs/climatologies		
-		for i in *${start_climatology}-${end_climatology}*.nc; do
-			j=`echo $i | sed 's/rsutcs/rsut/'`
-			k=`echo $i | sed 's/rsutcs/sw_cre/'`
-			cdo -chname,rsutcs,sw_cre -sub $i $CMIP_dir/processed/CMIP5/$experiment/Amon/rsut/climatologies/$j $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/climatologies/$k
+		for dir in $dir_list; do
+	    	cd $CMIP_dir/processed/CMIP5/$experiment/$realm/$variable/remapped_to_${res}_${dir}/
+	    	rm -f ${variable}*mmm*${period}*${res}*
+			
+			if [ "$dir" == "monthly_mean" ]; then
+				cdo ensmean $(ls ${variable}*${period}*${res}*) ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}.nc
+			else
+				cdo ensmean $(ls ${variable}*${period}*${res}*) ${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}_${dir}.nc
+			fi
 		done
-	
-	    # do the same for the fields with original resolution
-		cd $CMIP_dir/processed/CMIP5/$experiment/Amon/rsutcs/original_resolution		
-		for i in *.nc; do
-			j=`echo $i | sed 's/rsutcs/rsut/'`
-			k=`echo $i | sed 's/rsutcs/sw_cre/'`
-			cdo -chname,rsutcs,sw_cre -sub $i $CMIP_dir/processed/CMIP5/$experiment/Amon/rsut/original_resolution/$j $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/original_resolution/$k
-		done
-	
-	    # do the same for the remapped fields
-		cd $CMIP_dir/processed/CMIP5/$experiment/Amon/rsutcs/remapped_to_${res}		
-		for i in *${period}*.nc; do
-			j=`echo $i | sed 's/rsutcs/rsut/'`
-			k=`echo $i | sed 's/rsutcs/sw_cre/'`
-			cdo -chname,rsutcs,sw_cre -sub $i $CMIP_dir/processed/CMIP5/$experiment/Amon/rsut/remapped_to_${res}/$j $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/remapped_to_${res}/$k
-		done
-	
-	    # calculate ensemble mean for the climatologies
-		cd $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/climatologies/
-		rm -f *mmm*${start_climatology}-${end_climatology}*		
-		cdo ensmean *${start_climatology}-${end_climatology}*T42* sw_cre_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc	
-	
-	    # calculate ensemble mean for the remapped fields
-		cd $CMIP_dir/processed/CMIP5/$experiment/Amon/sw_cre/remapped_to_${res}/
-		rm -f *mmm*${period}*		
-		cdo ensmean *${period}*${res}* sw_cre_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}.nc	
-    fi	
-		
-    # do the same as above, but for the long wave cloud radiative effect
-	if [ -d $CMIP_dir/processed/CMIP5/$experiment/Amon/rlut/climatologies ] && [ -d $CMIP_dir/processed/CMIP5/$experiment/Amon/rlutcs/climatologies ] && ( [ "$variable" == "rlut" ] || [ "$variable" == "rlutcs" ] ); then 	
-	    # create folders for new sw_cre variable or delete old data
-	    mkdir -p $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/climatologies
-		mkdir -p $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/original_resolution
-		mkdir -p $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/remapped_to_${res}	
-		rm -f $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/climatologies/*
-		rm -f $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/original_resolution/*
-		rm -f $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/remapped_to_${res}/*
-	
-	    # go the climatologies and subtract rlut from rlutcs for each model
-		cd $CMIP_dir/processed/CMIP5/$experiment/Amon/rlutcs/climatologies		
-		for i in *${start_climatology}-${end_climatology}*.nc; do
-			j=`echo $i | sed 's/rlutcs/rlut/'`
-			k=`echo $i | sed 's/rlutcs/lw_cre/'`
-			cdo -chname,rlutcs,lw_cre -sub $i $CMIP_dir/processed/CMIP5/$experiment/Amon/rlut/climatologies/$j $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/climatologies/$k
-		done
-	
-	    # do the same for the fields with original resolution
-		cd $CMIP_dir/processed/CMIP5/$experiment/Amon/rlutcs/original_resolution		
-		for i in *.nc; do
-			j=`echo $i | sed 's/rlutcs/rlut/'`
-			k=`echo $i | sed 's/rlutcs/lw_cre/'`
-			cdo -chname,rlutcs,lw_cre -sub $i $CMIP_dir/processed/CMIP5/$experiment/Amon/rlut/original_resolution/$j $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/original_resolution/$k
-		done
-	
-	    # do the same for the remapped fields
-		cd $CMIP_dir/processed/CMIP5/$experiment/Amon/rlutcs/remapped_to_${res}		
-		for i in *${period}*.nc; do
-			j=`echo $i | sed 's/rlutcs/rlut/'`
-			k=`echo $i | sed 's/rlutcs/lw_cre/'`
-			cdo -chname,rlutcs,lw_cre -sub $i $CMIP_dir/processed/CMIP5/$experiment/Amon/rlut/remapped_to_${res}/$j $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/remapped_to_${res}/$k
-		done
-	
-	    # calculate ensemble mean for the climatologies
-		cd $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/climatologies/
-		rm -f *mmm*${start_climatology}-${end_climatology}*		
-		cdo ensmean *${start_climatology}-${end_climatology}*T42* lw_cre_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_climatology}-${end_climatology}_clim_${remap}_T42.nc	
-	
-	    # calculate ensemble mean for the remapped fields
-		cd $CMIP_dir/processed/CMIP5/$experiment/Amon/lw_cre/remapped_to_${res}/
-		rm -f *mmm*${period}*		
-		cdo ensmean *${period}*${res}* lw_cre_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${start_period}-${end_period}_${remap}_${res}.nc	
-    fi
-
+	fi	
 fi
 
 ##########################################################################################
