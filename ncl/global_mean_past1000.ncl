@@ -7,82 +7,132 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
 
 begin
 
+; load data
+
 CMIP_dir="/Users/stein/Documents/Uni/Master/HiWi/CMIP/"
+
 gm_directory=CMIP_dir+"processed/CMIP5/past1000/Amon/tas/global_mean_decadal_mean/"
-gm_files = systemfunc ("ls "+gm_directory+"*0851-2000"+"*.nc")
-gm=addfiles(gm_files,"r")
-ListSetType (gm, "join")
+gm_files = systemfunc ("ls "+gm_directory+"*.nc")
+gm_tmp=addfiles(gm_files,"r")
+ListSetType (gm_tmp, "join")
 
-proxy=addfile(CMIP_dir+"data/observations/Mann_et_al_2009/reconstruction_global_mean_anomaly.nc","r")
+gm_anomaly_directory=CMIP_dir+"processed/CMIP5/past1000/Amon/tas/global_mean_anomaly_decadal_mean/"
+gm_anomaly_files = systemfunc ("ls "+gm_anomaly_directory+"*.nc")
+gm_anomaly_tmp=addfiles(gm_anomaly_files,"r")
+ListSetType (gm_anomaly_tmp, "join")
 
+nh_directory=CMIP_dir+"processed/CMIP5/past1000/Amon/tas/NH_mean_decadal_mean/"
+nh_files = systemfunc ("ls "+nh_directory+"*.nc")
+nh_tmp=addfiles(nh_files,"r")
+ListSetType (nh_tmp, "join")
 
-model_name=gm_files
-do nt = 0,(dimsizes(gm_files)-1)
-	strs=str_split(gm_files(nt),"_")
-	model_name(nt)=strs(5)
+nh_anomaly_directory=CMIP_dir+"processed/CMIP5/past1000/Amon/tas/NH_mean_anomaly_decadal_mean/"
+nh_anomaly_files = systemfunc ("ls "+nh_anomaly_directory+"*.nc")
+nh_anomaly_tmp=addfiles(nh_anomaly_files,"r")
+ListSetType (nh_anomaly_tmp, "join")
+
+proxy_gm_tmp=addfile(CMIP_dir+"data/observations/Mann_et_al_2009/mann2009_reconstruction_global_mean_0851-1849_decadal_mean.nc","r")
+proxy_gm_anomaly_tmp=addfile(CMIP_dir+"data/observations/Mann_et_al_2009/mann2009_reconstruction_global_mean_anomaly_0851-1849_decadal_mean.nc","r")
+proxy_nh_tmp=addfile(CMIP_dir+"data/observations/Mann_et_al_2009/mann2009_reconstruction_NH_mean_0851-1849_decadal_mean.nc","r")
+proxy_nh_anomaly_tmp=addfile(CMIP_dir+"data/observations/Mann_et_al_2009/mann2009_reconstruction_NH_mean_anomaly_0851-1849_decadal_mean.nc","r")
+
+model_name=gm_anomaly_files
+do nt = 0,(dimsizes(gm_anomaly_files)-1)
+	strs=str_split(gm_anomaly_files(nt),"_")
+	model_name(nt)=strs(9)
 	delete(strs)
 end do
 
-gm_annual=gm[:]->tas(:,:,0,0)
-proxy_annual=proxy->tas(:,:,0)
-
-proxy_annual!1="ncl_join"
-
-
-all_fields=array_append_record(gm_annual,proxy_annual(ncl_join|:,time|:),0)
-
-
-time = ispan(851,2000,1)
-
-
-wks = gsn_open_wks("pdf" ,CMIP_dir+"/plots/global_mean/tas_0851-2000_past1000_global_mean")               ; open pdf file
-
-
-res                    = True             ; plot mods desired
-res@gsnDraw            = False           ; don't draw yet
-res@gsnFrame           = False           ; don't advance frame yet
-res@vpHeightF 	 = 0.4              ; change aspect ratio of plot
-res@vpWidthF 	         = 0.7
-res@trXMinF	         = 851             ; set x-axis minimum
-res@trXMaxF	         = 2000
-ymin=16
-ymax=20
-res@gsnMaximize      = True                   ; use full page
-;res@trYMinF	         = -1.0          ; set x-axis minimum
-;res@trYMaxF	         = 1.5
-res@xyLineThicknessF = 2.0 
-
- 
 names=array_append_record(model_name,"Mann et al. 2009 reconstruction",0)
+time = ispan(864,1844,10)
 
-res@pmLegendDisplayMode    = "Always"   ; Display a legend.
-res@xyExplicitLegendLabels = names         ; create explicit labels
-  res@pmLegendWidthF         = 0.30                ; Change width and
-  res@pmLegendHeightF        = 0.15                ; height of legend.
+gm=gm_tmp[:]->tas(:,:,0,0)
+gm_anomaly=gm_anomaly_tmp[:]->tas(:,:,0,0)
+nh=nh_tmp[:]->tas(:,:,0,0)
+nh_anomaly=nh_anomaly_tmp[:]->tas(:,:,0,0)
 
+proxy_gm=proxy_gm_tmp->tas(:,:,0)
+proxy_gm_anomaly=proxy_gm_anomaly_tmp->tas(:,:,0)
+proxy_nh=proxy_nh_tmp->tas(:,:,0)
+proxy_nh_anomaly=proxy_nh_anomaly_tmp->tas(:,:,0)
 
+proxy_gm!1="ncl_join"
+proxy_gm_anomaly!1="ncl_join"
+proxy_nh!1="ncl_join"
+proxy_nh_anomaly!1="ncl_join"
 
-res@xyLineColors       = (/"coral3","cyan","gold","firebrick3","darkorchid2","darkseagreen4","royalblue4","darkorange1","black"/) ; colors chosen
-res@xyDashPattern      = 0
-res@tiMainString=	"global mean surface air temperature" 
-res@tiYAxisString	 = "[~S~o~N~C]"     ; add an axis title    	
-res@tiXAxisString	 = "Year"      ; add an axis title    
- res@tmYRLabelsOn = True
-model_plot = gsn_csm_xy (wks,time,all_fields(ncl_join|0:dimsizes(gm_files),time|:),res)       ; create line plot
+all_fields_gm=array_append_record(gm,proxy_gm(ncl_join|:,time|:),0)
+all_fields_gm_anomaly=array_append_record(gm_anomaly,proxy_gm_anomaly(ncl_join|:,time|:),0)
+all_fields_nh=array_append_record(nh,proxy_nh(ncl_join|:,time|:),0)
+all_fields_nh_anomaly=array_append_record(nh_anomaly,proxy_nh_anomaly(ncl_join|:,time|:),0)
 
-  
+; define resources constant for all 4 plots
 
-  
+res                     		= True             
+res@vpHeightF 	 				= 0.4              	
+res@vpWidthF 	        		= 0.7
+res@trXMinF	         			= 864             	
+res@trXMaxF	       	  			= 1844
+res@gsnMaximize     			= True              
+res@tmYMajorGrid				= "True"
+res@tmYMajorGridLineColor		= "grey"
+res@tmYMajorGridLineDashPattern	= 16
+res@tmYMajorGridThicknessF		= 1.0
+res@pmLegendDisplayMode    		= "Always"   		
+res@xyExplicitLegendLabels 		= names         	
+res@pmLegendWidthF         		= 0.30              
+res@pmLegendHeightF        		= 0.15              
+res@xyLineColors       			= (/"coral3","cyan","gold","blue","darkorchid2","darkseagreen4","grey","darkorange1","green","firebrick2","black"/) ; colors chosen
+res@xyLineThicknesses   		= (/2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,2.0,5.0,5.0/) 
+res@xyDashPattern      			= 0
+res@gsnCenterString 			= "decadal surface air temperature"
+res@tiYAxisString	 			= "[~S~o~N~C]"     	    	
+res@tiXAxisString	 			= "Year"      		 
+res@tmYRLabelsOn 				= True
+ 
+ 
+ 
+; define variable resources
 
-res_text                    = True                  ; text mods desired
-res_text@txFontHeightF      = 0.015                 ; change text size
-res_text@txJust             = "CenterLeft"          ; text justification
-res_lines                   = True                  ; polyline mods desired
+; global mean plot
+ 
+	wks = gsn_open_wks("pdf" ,CMIP_dir+"/plots/global_mean/tas_0851-1849_past1000_global_mean")               ; open pdf file
 
+	res@trYMinF	            		= 11.2          ; set x-axis minimum
+	res@trYMaxF	            		= 15.5
+	res@tiMainString				= "global mean" 
 
+	model_plot = gsn_csm_xy (wks,time,all_fields_gm(ncl_join|0:dimsizes(gm_files)-1,time|:),res)       ; create line plot
+	
+; NH mean plot
+ 
+	wks = gsn_open_wks("pdf" ,CMIP_dir+"/plots/global_mean/tas_0851-1849_past1000_NH_mean")               ; open pdf file
 
-pres = True
-draw(wks)
+	res@trYMinF	            		= 11.2          ; set x-axis minimum
+	res@trYMaxF	            		= 15.5
+	res@tiMainString				= "NH mean" 
+
+	model_plot = gsn_csm_xy (wks,time,all_fields_nh(ncl_join|0:dimsizes(gm_files)-1,time|:),res)       ; create line plot
+	
+; global mean anomaly plot
+ 
+	wks = gsn_open_wks("pdf" ,CMIP_dir+"/plots/global_mean/tas_0851-1849_past1000_global_mean_anomaly")               ; open pdf file
+
+	res@trYMinF	            		= -0.8          ; set x-axis minimum
+	res@trYMaxF	            		= 0.8
+	res@tiMainString				= "global mean anomaly" 
+
+	model_plot = gsn_csm_xy (wks,time,all_fields_gm_anomaly(ncl_join|0:dimsizes(gm_files),time|:),res)       ; create line plot
+
+; NH mean anomaly plot
+
+	wks = gsn_open_wks("pdf" ,CMIP_dir+"/plots/global_mean/tas_0851-1849_past1000_NH_mean_anomaly")               ; open pdf file
+
+	res@trYMinF	            		= -0.8          ; set x-axis minimum
+	res@trYMaxF	            		= 0.8
+	res@tiMainString				= "NH mean anomaly" 
+
+	model_plot = gsn_csm_xy (wks,time,all_fields_nh_anomaly(ncl_join|0:dimsizes(gm_files),time|:),res)       ; create line plot	
 
 end
 
