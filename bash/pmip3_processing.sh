@@ -30,7 +30,7 @@ period=0851-1849					# time period for which the data gets processed
 climatology_period=0851-1849
 res=HadCRUT4						# HadCRUT4, ERSST
 remap=remapbil
-actions="7" 						# choose which sections of the script get executed; see list above
+actions="5" 						# choose which sections of the script get executed; see list above
 
 ##########################################################################################	
 
@@ -317,11 +317,11 @@ fi
 
 ##########################################################################################
     
-if [ $actid -eq 5 ];then # calculate spatial means and anomalies
+if [ $actid -eq 5 ];then # calculate spatial means and anomalies for past1000 experiment
 	
     cd ${CMIP_dir}/processed/CMIP5/$experiment/$realm/$variable/
 	
-	mean_list="decadal_mean decadal_running_mean"
+	mean_list="decadal_mean decadal_mean_detrended decadal_running_mean decadal_running_mean_detrended"
 	
 	for mean in ${mean_list}; do	
 		mkdir -p global_mean_${mean}
@@ -347,8 +347,6 @@ fi
 if [ $actid -eq 6 ];then # calculate corresponding piControl time series
 	
     cd ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/
-	mkdir -p global_mean_anomaly_decadal_mean
-	mkdir -p NH_mean_anomaly_decadal_mean
     mkdir -p remapped_to_${res}_monthly_mean
 	mkdir -p remapped_to_${res}_annual_mean
     mkdir -p remapped_to_${res}_decadal_mean
@@ -376,13 +374,93 @@ if [ $actid -eq 6 ];then # calculate corresponding piControl time series
 		cdo timselmean,10,9 ../remapped_to_${res}_annual_mean/$j ../remapped_to_${res}_decadal_mean/$k
 		cdo runmean,10 ../remapped_to_${res}_annual_mean/$j ../remapped_to_${res}_decadal_running_mean/$l
 	done
-			
+		
+    cd ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/
+	
+	mean_list="annual_mean annual_mean_detrended decadal_mean decadal_running_mean"
+	
+	for mean in ${mean_list}; do	
+		mkdir -p global_mean_${mean}
+		mkdir -p global_mean_anomaly_${mean}
+		mkdir -p NH_mean_${mean}
+		mkdir -p NH_mean_anomaly_${mean}
+		cd remapped_to_${res}_${mean}
+	
+		for model_file in *${remap}_${res}_${mean}.nc; do 
+			model_name=$(echo "${model_file}" | cut -d'_' -f3)
+			# again calculate anomalies and anomaly-climatologies
+			cdo -r fldmean ${model_file} ../global_mean_${mean}/${variable}_global_mean_${model_name}_${remap}_${res}_${mean}.nc
+			cdo -r fldmean -sellonlatbox,-180,180,0,90 ${model_file} ../NH_mean_${mean}/${variable}_NH_mean_${model_name}_${remap}_${res}_${mean}.nc
+			cdo -r sub ../global_mean_${mean}/${variable}_global_mean_${model_name}_${remap}_${res}_${mean}.nc -timmean ../global_mean_${mean}/${variable}_global_mean_${model_name}_${remap}_${res}_${mean}.nc ../global_mean_anomaly_${mean}/${variable}_global_mean_anomaly_${model_name}_${remap}_${res}_${mean}.nc
+			cdo -r sub ../NH_mean_${mean}/${variable}_NH_mean_${model_name}_${remap}_${res}_${mean}.nc -timmean ../NH_mean_${mean}/${variable}_NH_mean_${model_name}_${remap}_${res}_${mean}.nc ../NH_mean_anomaly_${mean}/${variable}_NH_mean_anomaly_${model_name}_${remap}_${res}_${mean}.nc
+		done
+		cd ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/
+	done	
 	
 fi
 
 ##########################################################################################
+    
+if [ $actid -eq 7 ];then # ccalculate model drift from piControl and detrend the simulations
+	
+    cd ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/
+    mkdir -p trends
+	mkdir -p offsets
+	mkdir -p remapped_to_${res}_annual_mean_detrended
+	cd remapped_to_${res}_annual_mean
+	
+	for i in *${remap}_${res}_annual_mean.nc; do
+		j=`echo $i | sed 's/annual_mean/offset/'`
+		k=`echo $i | sed 's/annual_mean/annual_trend/'`
+		l=`echo $i | sed 's/annual_mean/annual_mean_detrended/'`
 
-if [ $actid -eq 7 ];then # convert Mann et al data set from ascii to netcdf
+		cdo trend $i ../offsets/$j.tmp ../trends/$k
+		cdo setmisstoc,0 -setrtomiss,-9999,9999 ../offsets/$j.tmp ../offsets/$j
+		rm ../offsets/$j.tmp
+		cdo subtrend $i ../offsets/$j ../trends/$k ../remapped_to_${res}_annual_mean_detrended/$l
+	done		
+	
+fi
+
+##########################################################################################
+    
+if [ $actid -eq 8 ];then # detrend the past1000 simulations with piControl trends
+	
+    cd ${CMIP_dir}/processed/CMIP5/$experiment/$realm/$variable/
+	mkdir -p remapped_to_${res}_annual_mean_detrended
+	mkdir -p remapped_to_${res}_decadal_mean_detrended
+	mkdir -p remapped_to_${res}_decadal_running_mean_detrended
+	cd remapped_to_${res}_annual_mean
+	
+	for i in *${remap}_${res}_annual_mean.nc; do
+		if [ "$i" != "tas_Amon_mmm_past1000_CMIP5_r1i1p1_0851-1849_remapbil_HadCRUT4_annual_mean.nc" ]; then
+			j=`echo $i | sed 's/_past1000/_piControl/;s/_CMIP5_r1i1p1_0851-1849_remapbil_HadCRUT4_annual_mean.nc//'`
+			k=$(ls ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/offsets/$j*)
+			l=$(ls ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/trends/$j*)
+			m=`echo $i | sed 's/annual_mean/annual_mean_detrended/'`
+			
+			cdo subtrend $i $k $l ../remapped_to_${res}_annual_mean_detrended/$m
+			rm -f ../remapped_to_${res}_annual_mean_detrended/*mmm*
+			cdo ensmean ../remapped_to_${res}_annual_mean_detrended/*.nc ../remapped_to_${res}_annual_mean_detrended/tas_Amon_mmm_past1000_CMIP5_r1i1p1_0851-1849_remapbil_HadCRUT4_annual_mean_detrended.nc
+		fi
+	done
+	
+	cd 	../remapped_to_${res}_annual_mean_detrended
+	
+	for i in *${remap}_${res}_annual_mean_detrended.nc; do
+		j=`echo $i | sed 's/annual/decadal_running/'`
+		k=`echo $i | sed 's/annual/decadal/'`
+		cdo runmean,10 $i ../remapped_to_${res}_decadal_running_mean_detrended/$j
+		cdo timselmean,10,9 $i ../remapped_to_${res}_decadal_mean_detrended/$k
+	done
+	
+	
+fi
+
+
+##########################################################################################
+
+if [ $actid -eq 9 ];then # convert Mann et al data set from ascii to netcdf
 	
 	#ncl $CMIP_dir/CMIP_scripts/ncl/convert_mann_et_al.ncl
 	
@@ -407,7 +485,7 @@ fi
 
 ##########################################################################################
 
-if [ $actid -eq 8 ];then # calculate zonal means for Hovmöller diagrams
+if [ $actid -eq 10 ];then # calculate zonal means for Hovmöller diagrams
 	
 	cd ${CMIP_dir}/processed/CMIP5/$experiment/$realm/$variable/
 	rm -r -d zonal_means
