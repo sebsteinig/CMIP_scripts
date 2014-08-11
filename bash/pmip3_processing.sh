@@ -30,7 +30,7 @@ period=0851-1849					# time period for which the data gets processed
 climatology_period=0851-1849
 res=HadCRUT4						# HadCRUT4, ERSST
 remap=remapbil
-actions="10" 						# choose which sections of the script get executed; see list above
+actions="5" 						# choose which sections of the script get executed; see list above
 
 ##########################################################################################	
 
@@ -321,22 +321,30 @@ if [ $actid -eq 5 ];then # calculate spatial means and anomalies for past1000 ex
 	
     cd ${CMIP_dir}/processed/CMIP5/$experiment/$realm/$variable/
 	
-	mean_list="decadal_mean decadal_mean_detrended decadal_running_mean decadal_running_mean_detrended"
+	mean_list="annual_mean annual_mean_detrended decadal_mean decadal_mean_detrended decadal_running_mean decadal_running_mean_detrended"
 	
 	for mean in ${mean_list}; do	
 		mkdir -p global_mean_${mean}
 		mkdir -p global_mean_anomaly_${mean}
 		mkdir -p NH_mean_${mean}
 		mkdir -p NH_mean_anomaly_${mean}
+		mkdir -p MCA_anomaly_${mean}
+		mkdir -p LIA_anomaly_${mean}
+		
 		cd remapped_to_${res}_${mean}
 	
 		for model_file in *${remap}_${res}_${mean}.nc; do 
 			model_name=$(echo "${model_file}" | cut -d'_' -f3)
+			j=`echo ${model_file} | sed 's/.nc/_MCA_anomaly.nc/'`
+			k=`echo ${model_file} | sed 's/.nc/_LIA_anomaly.nc/'`
 			# again calculate anomalies and anomaly-climatologies
 			cdo fldmean ${model_file} ../global_mean_${mean}/${variable}_global_mean_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc
 			cdo fldmean -sellonlatbox,-180,180,0,90 ${model_file} ../NH_mean_${mean}/${variable}_NH_mean_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc
 			cdo sub ../global_mean_${mean}/${variable}_global_mean_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc -timmean ../global_mean_${mean}/${variable}_global_mean_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc ../global_mean_anomaly_${mean}/${variable}_global_mean_anomaly_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc
 			cdo sub ../NH_mean_${mean}/${variable}_NH_mean_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc -timmean ../NH_mean_${mean}/${variable}_NH_mean_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc ../NH_mean_anomaly_${mean}/${variable}_NH_mean_anomaly_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc
+			cdo timmean -selyear,950/1250 -sub ${model_file} -timmean ${model_file} ../MCA_anomaly_${mean}/$j
+			cdo timmean -selyear,1400/1700 -sub ${model_file} -timmean ${model_file} ../LIA_anomaly_${mean}/$k
+	
 		done
 		cd ${CMIP_dir}/processed/CMIP5/$experiment/$realm/$variable/
 	done
@@ -351,6 +359,8 @@ if [ $actid -eq 6 ];then # calculate corresponding piControl time series
 	mkdir -p remapped_to_${res}_annual_mean
     mkdir -p remapped_to_${res}_decadal_mean
     mkdir -p remapped_to_${res}_decadal_running_mean
+    mkdir -p remapped_to_${res}_decadal_running_mean_detrended
+	
 	
 	
 	cd ${CMIP_dir}/processed/CMIP5/$experiment/$realm/$variable/
@@ -369,15 +379,20 @@ if [ $actid -eq 6 ];then # calculate corresponding piControl time series
 		j=`echo $i | sed 's/_HadCRUT4.nc/_HadCRUT4_annual_mean.nc/'`
 		k=`echo $i | sed 's/_HadCRUT4.nc/_HadCRUT4_decadal_mean.nc/'`
 		l=`echo $i | sed 's/_HadCRUT4.nc/_HadCRUT4_decadal_running_mean.nc/'`
+		m=`echo $i | sed 's/_HadCRUT4.nc/_HadCRUT4_annual_mean_detrended.nc/'`
+		n=`echo $i | sed 's/_HadCRUT4.nc/_HadCRUT4_decadal_running_mean_detrended.nc/'`
+		
 		
 		cdo yearmean $i ../remapped_to_${res}_annual_mean/$j
 		cdo timselmean,10,9 ../remapped_to_${res}_annual_mean/$j ../remapped_to_${res}_decadal_mean/$k
 		cdo runmean,10 ../remapped_to_${res}_annual_mean/$j ../remapped_to_${res}_decadal_running_mean/$l
+		cdo runmean,10 ../remapped_to_${res}_annual_mean_detrended/$m ../remapped_to_${res}_decadal_running_mean_detrended/$n
+		
 	done
 		
     cd ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/
 	
-	mean_list="annual_mean annual_mean_detrended decadal_mean decadal_running_mean"
+	mean_list="annual_mean annual_mean_detrended decadal_mean decadal_running_mean decadal_running_mean_detrended"
 	
 	for mean in ${mean_list}; do	
 		mkdir -p global_mean_${mean}
@@ -406,7 +421,7 @@ if [ $actid -eq 7 ];then # ccalculate model drift from piControl and detrend the
     cd ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/
     mkdir -p trends
 	mkdir -p offsets
-	mkdir -p remapped_to_${res}_annual_mean_detrended
+	
 	cd remapped_to_${res}_annual_mean
 	
 	for i in *${remap}_${res}_annual_mean.nc; do
