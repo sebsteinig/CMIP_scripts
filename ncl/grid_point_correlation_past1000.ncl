@@ -11,8 +11,8 @@ begin
 
 CMIP_dir="/Users/stein/Documents/Uni/Master/HiWi/CMIP/"
 
-;directory=CMIP_dir+"processed/CMIP5/past1000/Amon/tas/remapped_to_HadCRUT4_decadal_mean_detrended/"
-directory=CMIP_dir+"processed/CMIP5/past1000/Amon/tas/remapped_to_HadCRUT4_decadal_mean/"
+directory=CMIP_dir+"processed/CMIP5/past1000/Amon/tas/remapped_to_HadCRUT4_decadal_mean_detrended/"
+;directory=CMIP_dir+"processed/CMIP5/past1000/Amon/tas/remapped_to_HadCRUT4_decadal_mean/"
 
 f = systemfunc ("ls "+directory+"*.nc")
 files=addfiles(f,"r")
@@ -23,8 +23,8 @@ proxy=addfile(CMIP_dir+"data/observations/Mann_et_al_2009/mann2009_reconstructio
 model_name=f
 do nt = 0,(dimsizes(f)-1)
 	strs=str_split(f(nt),"_")
-	;model_name(nt)=strs(7)
-	model_name(nt)=strs(6)
+	model_name(nt)=strs(7)
+	;model_name(nt)=strs(6)
 	delete(strs)
 end do
 
@@ -55,8 +55,8 @@ do nn=0,9
 	end do
 end do
 
- ;wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/grid_point_correlations_detrended")  ; open workstation 
- wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/grid_point_correlations")  ; open workstation 
+ wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/grid_point_correlations_detrended")  ; open workstation 
+ ;wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/grid_point_correlations")  ; open workstation 
  plot = new(10,graphic)
  plot2 = new(10,graphic)
  gsn_define_colormap(wks,"BlueDarkRed18")
@@ -80,7 +80,8 @@ end do
  
  resP                  = True                   ; modify the panel plot
  resP@lbOrientation    = "Horizontal"          ; vertical label bar
- resP@txString         = "Grid-point correlation between models and reconstruction"
+ resP@txString         = "Grid-point correlation between models and reconstruction (detrended)"
+ ;resP@txString         = "Grid-point correlation between models and reconstruction"
  resP@gsnMaximize      = True                   ; make ps, eps, pdf, ... large
  resP@gsnPanelLabelBar = True                   ; add common label bar
  

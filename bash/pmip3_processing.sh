@@ -30,7 +30,7 @@ period=0851-1849					# time period for which the data gets processed
 climatology_period=0851-1849
 res=HadCRUT4						# HadCRUT4, ERSST
 remap=remapbil
-actions="5" 						# choose which sections of the script get executed; see list above
+actions="10" 						# choose which sections of the script get executed; see list above
 
 ##########################################################################################	
 
@@ -486,26 +486,27 @@ fi
 ##########################################################################################
 
 if [ $actid -eq 10 ];then # calculate zonal means for Hovmöller diagrams
-	
-	cd ${CMIP_dir}/processed/CMIP5/$experiment/$realm/$variable/
-	rm -r -d zonal_means
-	mkdir -p zonal_means
-	cd remapped_to_${res}
 		
-	for i in *${period}*${res}.nc; do
-		j=`echo $i | sed 's/.nc/_clim_subtracted.nc/'`
-		k=`echo $i | sed 's/.nc/_zonal_mean_anomaly.nc/'`
-		l=`echo $i | sed 's/.nc/_zonal_mean_anomaly_gm_subtracted.nc/'`
+	mean_list="annual_mean annual_mean_detrended decadal_mean decadal_mean_detrended decadal_running_mean decadal_running_mean"
 		
-		cdo -r -ymonsub $i -ymonmean $i $j
-		cdo -r zonmean $j ${CMIP_dir}/processed/CMIP5/$experiment/$realm/$variable/zonal_means/$k 
-		cdo -r -sub $i -enlarge,$i -fldmean $i gm_removed_tmp.nc
-		cdo -r -ymonsub gm_removed_tmp.nc -ymonmean gm_removed_tmp.nc gm_clim_removed_tmp.nc
-		cdo -r zonmean gm_clim_removed_tmp.nc ${CMIP_dir}/processed/CMIP5/$experiment/$realm/$variable/zonal_means/$l
-		rm -f *tmp*
+	for i in ${mean_list}; do	
+		cd ${CMIP_dir}/processed/CMIP5/$experiment/$realm/$variable/	
+		mkdir -p zonal_mean_${i}
+		mkdir -p zonal_mean_anomaly_${i}
+		cd remapped_to_${res}_${i}		
+		for j in *.nc; do
+			k=`echo $j | sed "s/${i}/${i}_zonal_mean/"`
+			l=`echo $j | sed "s/${i}/${i}_zonal_mean_anomaly/"`
+			#m=`echo $i | sed 's/.nc/_zonal_mean_anomaly_gm_subtracted.nc/'`
+		
+			cdo -r zonmean $j ../zonal_mean_${i}/$k
+			cdo -r sub ../zonal_mean_${i}/$k -timmean ../zonal_mean_${i}/$k ../zonal_mean_anomaly_${i}/$l
+		done
 	done
-	
-	rm -f  *subtracted*
+		
+		cd ${CMIP_dir}/data/observations/Mann_et_al_2009
+		cdo -r zonmean mann2009_reconstruction_0851-1849_decadal_mean.nc mann2009_reconstruction_0851-1849_decadal_mean_zonal_mean.nc
+		cdo -r sub mann2009_reconstruction_0851-1849_decadal_mean_zonal_mean.nc -timmean mann2009_reconstruction_0851-1849_decadal_mean_zonal_mean.nc mann2009_reconstruction_0851-1849_decadal_mean_zonal_mean_anomaly.nc
 fi
 
 ##########################################################################################
