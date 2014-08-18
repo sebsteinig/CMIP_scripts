@@ -23,14 +23,14 @@ fi
 ##########################################################################################
 
 experiment="past1000"				# CMIP5 experiments: historical,rcp45
-var="tas"				# CMIP variable to process (e.g. tos,tas,pr,psl,...)
+var="rlut"				# CMIP variable to process (e.g. tos,tas,pr,psl,...)
 #var="tos"									# for full list see: http://cmip-pcmdi.llnl.gov/cmip5/docs/standard_output.pdf
 observations="NCEP"					# HadISST HadSST3 CMAP GPCP HadSLP2 MLD ERSST HadCRUT4 CERES_EBAF NCEP
 period=0851-1849					# time period for which the data gets processed
 climatology_period=0851-1849
 res=HadCRUT4						# HadCRUT4, ERSST
 remap=remapbil
-actions="5" 						# choose which sections of the script get executed; see list above
+actions="1" 						# choose which sections of the script get executed; see list above
 
 ##########################################################################################	
 
@@ -60,7 +60,7 @@ case $variable in
             tos|zos|mlotst|zosga|zossga|zostoga|msftmyz)   
                 realm=Omon; cmor_table=ocean                                                  				
                 ;;
-            tas|ta|psl|pr|rsut|rsutcs|rlut|rlutcs|ua|va|zg)
+            tas|ta|psl|pr|rsut|rsutcs|rlut|rlutcs|ua|va|zg|rsdt)
 				realm=Amon; cmor_table=atmos                 
 				;;
             *)

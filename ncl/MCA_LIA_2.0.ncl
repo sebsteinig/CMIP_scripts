@@ -13,20 +13,20 @@ print("The current working directory is: "+(CMIP_dir(0)))
 
 directory=CMIP_dir+"/processed/CMIP5/past1000/Amon/tas/"
 
-f = systemfunc ("ls "+directory+"remapped_to_HadCRUT4_annual_mean/*.nc")
-f_detrended = systemfunc ("ls "+directory+"remapped_to_HadCRUT4_annual_mean_detrended/*.nc")
+f = systemfunc ("ls "+directory+"remapped_to_HadCRUT4_decadal_running_mean/*.nc")
+f_detrended = systemfunc ("ls "+directory+"remapped_to_HadCRUT4_decadal_running_mean_detrended/*.nc")
 files=addfiles(f,"r")
 files_detrended=addfiles(f_detrended,"r")
 ListSetType (files, "join")
 ListSetType (files_detrended, "join")
 
-proxy_f=addfile(CMIP_dir+"/data/observations/Mann_et_al_2009/mann2009_reconstruction_0851-1849.nc","r")
+proxy_f=addfile(CMIP_dir+"/data/observations/Mann_et_al_2009/mann2009_reconstruction_0856-1845_decadal_mean.nc","r")
 
 
 model_name=f
 do nt = 0,(dimsizes(f)-1)
 	strs=str_split(f(nt),"_")
-	model_name(nt)=strs(6)
+	model_name(nt)=strs(7)
 	delete(strs)
 end do
 
@@ -94,7 +94,7 @@ siglvl=0.05
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;MCA
 
-wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/MCA_all_models_annual")  ; open workstation 
+wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/MCA_all_models")  ; open workstation 
 plot = new((dimsizes(names)),graphic)
 plot2 = new((dimsizes(names)),graphic)
 
@@ -133,7 +133,7 @@ gsn_panel(wks,plot,(/4,3/),resP)               ; create panel plot
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;LIA
 
-wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/LIA_all_models_annual")  ; open workstation 
+wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/LIA_all_models")  ; open workstation 
 plot = new((dimsizes(names)),graphic)
 plot2 = new((dimsizes(names)),graphic)
 
@@ -159,7 +159,7 @@ gsn_panel(wks,plot,(/4,3/),resP)               ; create panel plot
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;MCA detrended
 
-wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/MCA_all_models_detrended_annual")  ; open workstation 
+wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/MCA_all_models_detrended")  ; open workstation 
 plot = new((dimsizes(names)),graphic)
 plot2 = new((dimsizes(names)),graphic)
 
@@ -197,7 +197,7 @@ gsn_panel(wks,plot,(/4,3/),resP)               ; create panel plot
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;LIA detrended
 
-wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/LIA_all_models_detrended_annual")  ; open workstation 
+wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/LIA_all_models_detrended")  ; open workstation 
 plot = new((dimsizes(names)),graphic)
 plot2 = new((dimsizes(names)),graphic)
 
@@ -224,7 +224,7 @@ gsn_panel(wks,plot,(/4,3/),resP)               ; create panel plot
 ;test
 nn=1
 
-wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/"+names(nn)+"_detail_annual")  ; open workstation 
+wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/"+names(nn)+"_detail")  ; open workstation 
 plot3 = new(6,graphic)
 gsn_define_colormap(wks,"BlueDarkRed18")
 
@@ -268,16 +268,16 @@ res3@tiMainString     = "whole_period"
 plot3(1)=gsn_csm_contour_map(wks,whole_period,res3)
 
 res3@cnMinLevelValF       = 0.0
-res3@cnMaxLevelValF       =  0.5
-res3@cnLevelSpacingF      =  .025
+res3@cnMaxLevelValF       =  0.15
+res3@cnLevelSpacingF      =  .01
 res3@tiMainString     = "var MCA"
 plot3(2)=gsn_csm_contour_map(wks,var_MCA,res3)
 res3@tiMainString     = "var whole period"
 plot3(3)=gsn_csm_contour_map(wks,var_whole_period,res3)
 
 res3@cnMinLevelValF       = 0.0
-res3@cnMaxLevelValF       =  1000.0
-res3@cnLevelSpacingF      =  100.0
+res3@cnMaxLevelValF       =  100.0
+res3@cnLevelSpacingF      =  5.0
 res3@tiMainString     = "size MCA"
 plot3(4)=gsn_csm_contour_map(wks,size_MCA,res3)
 res3@tiMainString     = "size whole_period"
