@@ -447,6 +447,10 @@ if [ $actid -eq 8 ];then # process KCM data
     	cdo sub temp2_P90_NH_mean_annual_2500-6699.nc -timmean temp2_P90_NH_mean_annual_2500-6699.nc temp2_P90_NH_mean_anomaly_annual_2500-6699.nc
     	cdo sub temp2_P93_NH_mean_annual_2500-6699.nc -timmean temp2_P93_NH_mean_annual_2500-6699.nc temp2_P93_NH_mean_anomaly_annual_2500-6699.nc
 
+		cdo runmean,11 temp2_P86_NH_mean_anomaly_annual_2500-6699.nc temp2_P86_NH_mean_anomaly_decadal_2500-6699.nc
+		cdo runmean,11 temp2_P90_NH_mean_anomaly_annual_2500-6699.nc temp2_P90_NH_mean_anomaly_decadal_2500-6699.nc
+		cdo runmean,11 temp2_P93_NH_mean_anomaly_annual_2500-6699.nc temp2_P93_NH_mean_anomaly_decadal_2500-6699.nc
+		
 		cdo trend temp2_P86_NH_mean_annual_2500-6699.nc ctrl_offset.tmp.nc ctrl_trend.nc
 		cdo setmisstoc,0 -setrtomiss,-9999,9999 ctrl_offset.tmp.nc ctrl_offset.nc
 		rm ctrl_offset.tmp.nc
@@ -457,7 +461,10 @@ if [ $actid -eq 8 ];then # process KCM data
 	    cdo sub temp2_P86_NH_mean_annual_2500-6699_detrended.nc -timmean temp2_P86_NH_mean_annual_2500-6699_detrended.nc temp2_P86_NH_mean_anomaly_annual_2500-6699_detrended.nc
 	    cdo sub temp2_P90_NH_mean_annual_2500-6699_detrended.nc -timmean temp2_P90_NH_mean_annual_2500-6699_detrended.nc temp2_P90_NH_mean_anomaly_annual_2500-6699_detrended.nc
 	    cdo sub temp2_P93_NH_mean_annual_2500-6699_detrended.nc -timmean temp2_P93_NH_mean_annual_2500-6699_detrended.nc temp2_P93_NH_mean_anomaly_annual_2500-6699_detrended.nc	
-	
+	    
+	    cdo runmean,11 temp2_P86_NH_mean_anomaly_annual_2500-6699_detrended.nc temp2_P86_NH_mean_anomaly_decadal_2500-6699_detrended.nc
+		cdo runmean,11 temp2_P90_NH_mean_anomaly_annual_2500-6699_detrended.nc temp2_P90_NH_mean_anomaly_decadal_2500-6699_detrended.nc
+		cdo runmean,11 temp2_P93_NH_mean_anomaly_annual_2500-6699_detrended.nc temp2_P93_NH_mean_anomaly_decadal_2500-6699_detrended.nc
 fi
 ##########################################################################################
     
