@@ -30,7 +30,7 @@ period=0851-1849					# time period for which the data gets processed
 climatology_period=0851-1849
 res=HadCRUT4						# HadCRUT4, ERSST
 remap=remapbil
-actions="1" 						# choose which sections of the script get executed; see list above
+actions="8" 						# choose which sections of the script get executed; see list above
 
 ##########################################################################################	
 
@@ -439,7 +439,29 @@ fi
 
 ##########################################################################################
     
-if [ $actid -eq 8 ];then # detrend the past1000 simulations with piControl trends
+if [ $actid -eq 8 ];then # process KCM data
+	
+    cd ${CMIP_dir}/data/KCM/NH_mean_annual
+    
+    	cdo sub temp2_P86_NH_mean_annual_2500-6699.nc -timmean temp2_P86_NH_mean_annual_2500-6699.nc temp2_P86_NH_mean_anomaly_annual_2500-6699.nc
+    	cdo sub temp2_P90_NH_mean_annual_2500-6699.nc -timmean temp2_P90_NH_mean_annual_2500-6699.nc temp2_P90_NH_mean_anomaly_annual_2500-6699.nc
+    	cdo sub temp2_P93_NH_mean_annual_2500-6699.nc -timmean temp2_P93_NH_mean_annual_2500-6699.nc temp2_P93_NH_mean_anomaly_annual_2500-6699.nc
+
+		cdo trend temp2_P86_NH_mean_annual_2500-6699.nc ctrl_offset.tmp.nc ctrl_trend.nc
+		cdo setmisstoc,0 -setrtomiss,-9999,9999 ctrl_offset.tmp.nc ctrl_offset.nc
+		rm ctrl_offset.tmp.nc
+		cdo subtrend temp2_P86_NH_mean_annual_2500-6699.nc ctrl_offset.nc ctrl_trend.nc temp2_P86_NH_mean_annual_2500-6699_detrended.nc
+		cdo subtrend temp2_P90_NH_mean_annual_2500-6699.nc ctrl_offset.nc ctrl_trend.nc temp2_P90_NH_mean_annual_2500-6699_detrended.nc
+		cdo subtrend temp2_P93_NH_mean_annual_2500-6699.nc ctrl_offset.nc ctrl_trend.nc temp2_P93_NH_mean_annual_2500-6699_detrended.nc
+
+	    cdo sub temp2_P86_NH_mean_annual_2500-6699_detrended.nc -timmean temp2_P86_NH_mean_annual_2500-6699_detrended.nc temp2_P86_NH_mean_anomaly_annual_2500-6699_detrended.nc
+	    cdo sub temp2_P90_NH_mean_annual_2500-6699_detrended.nc -timmean temp2_P90_NH_mean_annual_2500-6699_detrended.nc temp2_P90_NH_mean_anomaly_annual_2500-6699_detrended.nc
+	    cdo sub temp2_P93_NH_mean_annual_2500-6699_detrended.nc -timmean temp2_P93_NH_mean_annual_2500-6699_detrended.nc temp2_P93_NH_mean_anomaly_annual_2500-6699_detrended.nc	
+	
+fi
+##########################################################################################
+    
+if [ $actid -eq 9 ];then # detrend the past1000 simulations with piControl trends
 	
     cd ${CMIP_dir}/processed/CMIP5/$experiment/$realm/$variable/
 	mkdir -p remapped_to_${res}_annual_mean_detrended
@@ -475,7 +497,7 @@ fi
 
 ##########################################################################################
 
-if [ $actid -eq 9 ];then # convert Mann et al data set from ascii to netcdf
+if [ $actid -eq 10 ];then # convert Mann et al data set from ascii to netcdf
 	
 	#ncl $CMIP_dir/CMIP_scripts/ncl/convert_mann_et_al.ncl
 	
@@ -500,7 +522,7 @@ fi
 
 ##########################################################################################
 
-if [ $actid -eq 10 ];then # calculate zonal means for Hovmöller diagrams
+if [ $actid -eq 11 ];then # calculate zonal means for Hovmöller diagrams
 		
 	mean_list="annual_mean annual_mean_detrended decadal_mean decadal_mean_detrended decadal_running_mean decadal_running_mean"
 		
