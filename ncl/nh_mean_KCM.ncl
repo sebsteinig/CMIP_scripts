@@ -18,6 +18,12 @@ files = systemfunc ("ls "+directory+"*mean_anomaly_annual_2500-6699_detrended.nc
 nh_tmp=addfiles(files,"r")
 ListSetType (nh_tmp, "join")
 
+forcing_P90_f=addfile(CMIP_dir+"/data/KCM/P90/P90_ym_2500-6699.solc.nc","r")
+forcing_P93_f=addfile(CMIP_dir+"/data/KCM/P93/P93_ym_2500-6699.solc.nc","r")
+
+forcing_P90=forcing_P90_f->solc(:,0,0)
+forcing_P93=forcing_P93_f->solc(:,0,0)
+
 
 model_name=files
 do nt = 0,(dimsizes(files)-1)
@@ -30,6 +36,27 @@ nh=nh_tmp[:]->temp2(:,:,0,0)
 time=nh_tmp[0]->time
 time_new=cd_calendar(time,0)
 nh&time=time_new(:,0)
+
+print(maxind(forcing_P93))
+
+
+; calculate lagged correlation between NH mean and solar forcing
+
+mxlag=500
+lags=ispan(-500,500,1)
+
+t_lead_s_P90=esccr(nh(1,:),forcing_P90,mxlag)
+s_lead_t_P90=esccr(forcing_P90,nh(1,:),mxlag)
+t_lead_s_P93=esccr(nh(2,:),forcing_P93,mxlag)
+s_lead_t_P93=esccr(forcing_P93,nh(2,:),mxlag)
+
+ccr=new ( (/2,2*mxlag+1/), "float") 
+ccr(0,0:mxlag-1) = t_lead_s_P90(1:mxlag:-1)  ; "negative lag", -1 reverses order
+ccr(0,mxlag:)    = s_lead_t_P90(0:mxlag)     ; "positive lag"
+
+ccr(1,0:mxlag-1) = t_lead_s_P93(1:mxlag:-1)  ; "negative lag", -1 reverses order
+ccr(1,mxlag:)    = s_lead_t_P93(0:mxlag)     ; "positive lag"
+
 
 ;*****************************************************************************************
 ; Plots
@@ -73,6 +100,49 @@ res@trXMaxF	       	  			= max(time_new(:,0))
 	res@tiMainString				= "NH mean" 
 
 	model_plot = gsn_csm_xy (wks,time_new(:,0),runave(nh,31,0),res)     
+
+;*****************************************************************************************
+; Lagged correlation
+
+resl                     		= True             
+resl@vpHeightF 	 				= 0.4              	
+resl@vpWidthF 	        		= 0.7
+resl@gsnMaximize     			= True              
+resl@tmYMajorGrid				= "True"
+resl@tmYMajorGridLineColor		= "grey"
+resl@tmYMajorGridLineDashPattern	= 16
+resl@tmYMajorGridThicknessF		= 1.0
+resl@pmLegendDisplayMode    		= "Always"   		
+resl@xyExplicitLegendLabels 		= (/"P90","P93"/)         	
+resl@pmLegendWidthF         		= 0.30              
+resl@pmLegendHeightF        		= 0.08        
+resl@xyLineColors       			= (/"firebrick2","deepskyblue"/) ; colors chosen
+resl@xyLineThicknesses   		= (/5.0,5.0/) 
+resl@xyDashPattern      			= 0
+resl@tiYAxisString	 			= "~Z75~correlation coefficient"     	    	
+resl@tiXAxisString	 			= "~Z75~Lag [years]"      		 
+resl@tmYRLabelsOn 				= True
+ 
+ 
+ 
+; define variable resources
+
+
+resl@gsnLeftString 			= "~Z75~ P90 max. corr. at "+maxind(s_lead_t_P90)+" years"
+resl@gsnRightString 			= "~Z75~ P93 max. corr. at "+maxind(s_lead_t_P93)+" years"
+resl@trXMinF	         			= -500          	
+resl@trXMaxF	       	  			= 500 
+
+; global mean plot
+ 
+	wks = gsn_open_wks("pdf" ,CMIP_dir+"/plots/global_mean/KCM_lagged_correlation_NH_mean_solar_forcing")            
+
+	;res@trYMinF	            		= -0.8         
+	;res@trYMaxF	            		= 0.8
+	resl@tiMainString				= "~Z50~Lagged correlation between Solar Forcing and NH mean temperature" 
+
+	corr_plot = gsn_csm_xy (wks,lags,ccr,resl)     
+
 
 ;*****************************************************************************************
 ; Spectra
