@@ -47,6 +47,9 @@ ssa_56_file=addfile(CMIP_dir+"/data/TSI/roth_for_sebastian_new_ssa300/roth_ym_00
 ssa_56_tmp=ssa_56_file->tsi(:,0,0)
 ssa_56=ssa_56_tmp({time|856:1845})
 
+total_TSI_file=addfile(CMIP_dir+"/data/TSI/Roth_and_Joos_2013/TSI_Holocene_Roth_and_Joos_2013.nc","r")
+total_TSI_tmp=total_TSI_file->TSI
+total_TSI=total_TSI_tmp({time|856:1845.5})
 
 
 dim_proxy = dimsizes(proxy)    ; determine the dimensions of "y"
@@ -61,7 +64,8 @@ rc   = regcoef (ssa_1,all_fields(ncl_join|0,latitude|:,longitude|:,time|:),tval,
 
 copy_VarMeta(proxy(0,0,:,:),rc)
 
-
+printVarSummary(all_fields)
+printVarSummary(total_TSI)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;Plots
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -111,7 +115,7 @@ resP@gsnPanelLabelBar = True                   ; add common label bar
 
 
 ; Rec 1
-wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/SSA_1_regression_new")  ; open workstation 
+wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/SSA_1_regression_tas")  ; open workstation 
 plot = new(11,graphic)
 plot2 = new(11,graphic)
 gsn_define_colormap(wks,"BlueDarkRed18")
@@ -144,7 +148,7 @@ gsn_panel(wks,plot,(/4,3/),resP)               ; create panel plot
 
 
 ; Rec 23
-wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/SSA_23_regression_new")  ; open workstation 
+wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/SSA_23_regression_tas")  ; open workstation 
 plot = new(11,graphic)
 gsn_define_colormap(wks,"BlueDarkRed18")
 
@@ -172,7 +176,7 @@ resP@txString         = "Linear regression coeffcients SAT with TSI rec23"
 gsn_panel(wks,plot,(/4,3/),resP)               ; create panel plot
 
 ; Rec 56
-wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/SSA_56_regression_new")  ; open workstation 
+wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/SSA_56_regression_tas")  ; open workstation 
 plot = new(11,graphic)
 gsn_define_colormap(wks,"BlueDarkRed18")
 
@@ -198,7 +202,32 @@ resP@txString         = "Linear regression coeffcients SAT with TSI rec56"
 
 gsn_panel(wks,plot,(/4,3/),resP)               ; create panel plot
 
-print(tval)
+; Total TSI
+wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/SSA_total_TSI_regression_tas")  ; open workstation 
+plot = new(11,graphic)
+gsn_define_colormap(wks,"BlueDarkRed18")
+
+do nn=0,10
+	rc   = regcoef (total_TSI,all_fields(ncl_join|nn,latitude|:,longitude|:,time|:),tval,nxy)
+	ccr_tmp = escorc(all_fields(ncl_join|nn,latitude|:,longitude|:,time|:),total_TSI)
+	ccr=ccr_tmp^2
+	copy_VarMeta(proxy(0,0,:,:),rc)
+	copy_VarMeta(proxy(0,0,:,:),ccr)
+	res@tiMainString     = names(nn)
+	if nn .eq. 10
+		res2@lbLabelBarOn         = True             	; turn off individual lb's
+		res2@lbOrientation    = "Vertical"          ; vertical label bar
+	else
+		res2@lbLabelBarOn         = False             	; turn off individual lb's
+	end if
+	plot(nn)=gsn_csm_contour_map(wks,rc,res)
+	plot2(nn)=gsn_csm_contour(wks,ccr,res2)
+	overlay (plot(nn), plot2(nn))
+end do
+
+resP@txString         = "Linear regression coeffcients SAT with total TSI"
+
+gsn_panel(wks,plot,(/4,3/),resP)               ; create panel plot
 
 
 

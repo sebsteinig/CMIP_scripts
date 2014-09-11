@@ -23,14 +23,14 @@ fi
 ##########################################################################################
 
 experiment="past1000"				# CMIP5 experiments: historical,rcp45
-var="rlut"				# CMIP variable to process (e.g. tos,tas,pr,psl,...)
+var="pr"				# CMIP variable to process (e.g. tos,tas,pr,psl,...)
 #var="tos"									# for full list see: http://cmip-pcmdi.llnl.gov/cmip5/docs/standard_output.pdf
 observations="NCEP"					# HadISST HadSST3 CMAP GPCP HadSLP2 MLD ERSST HadCRUT4 CERES_EBAF NCEP
 period=0851-1849					# time period for which the data gets processed
 climatology_period=0851-1849
 res=HadCRUT4						# HadCRUT4, ERSST
 remap=remapbil
-actions="8" 						# choose which sections of the script get executed; see list above
+actions="9" 						# choose which sections of the script get executed; see list above
 
 ##########################################################################################	
 
@@ -328,6 +328,8 @@ if [ $actid -eq 5 ];then # calculate spatial means and anomalies for past1000 ex
 		mkdir -p global_mean_anomaly_${mean}
 		mkdir -p NH_mean_${mean}
 		mkdir -p NH_mean_anomaly_${mean}
+		mkdir -p SH_mean_${mean}
+		mkdir -p SH_mean_anomaly_${mean}
 		mkdir -p MCA_anomaly_${mean}
 		mkdir -p LIA_anomaly_${mean}
 		
@@ -340,8 +342,10 @@ if [ $actid -eq 5 ];then # calculate spatial means and anomalies for past1000 ex
 			# again calculate anomalies and anomaly-climatologies
 			cdo fldmean ${model_file} ../global_mean_${mean}/${variable}_global_mean_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc
 			cdo fldmean -sellonlatbox,-180,180,0,90 ${model_file} ../NH_mean_${mean}/${variable}_NH_mean_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc
+			cdo fldmean -sellonlatbox,-180,180,-90,0 ${model_file} ../SH_mean_${mean}/${variable}_SH_mean_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc
 			cdo sub ../global_mean_${mean}/${variable}_global_mean_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc -timmean ../global_mean_${mean}/${variable}_global_mean_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc ../global_mean_anomaly_${mean}/${variable}_global_mean_anomaly_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc
 			cdo sub ../NH_mean_${mean}/${variable}_NH_mean_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc -timmean ../NH_mean_${mean}/${variable}_NH_mean_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc ../NH_mean_anomaly_${mean}/${variable}_NH_mean_anomaly_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc
+			cdo sub ../SH_mean_${mean}/${variable}_SH_mean_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc -timmean ../SH_mean_${mean}/${variable}_SH_mean_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc ../SH_mean_anomaly_${mean}/${variable}_SH_mean_anomaly_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc
 			cdo timmean -selyear,950/1250 -sub ${model_file} -timmean ${model_file} ../MCA_anomaly_${mean}/$j
 			cdo timmean -selyear,1400/1700 -sub ${model_file} -timmean ${model_file} ../LIA_anomaly_${mean}/$k
 	
@@ -367,7 +371,7 @@ if [ $actid -eq 6 ];then # calculate corresponding piControl time series
 	cd remapped_to_${res}_decadal_mean
 	
 	for i in *${remap}_${res}_decadal_mean.nc; do
-		if [ "$i" != "tas_Amon_mmm_past1000_CMIP5_r1i1p1_0851-1849_remapbil_HadCRUT4_decadal_mean.nc" ]; then
+		if [ "$i" != "pr_Amon_mmm_past1000_CMIP5_r1i1p1_0851-1849_remapbil_HadCRUT4_decadal_mean.nc"  ] && [ "$i" != "pr_Amon_HadCM3_past1000_CMIP5_r1i1p1_0851-1849_remapbil_HadCRUT4_decadal_mean.nc" ] && [ "$i" != "pr_Amon_CSIRO-Mk3L-1-2_past1000_CMIP5_r1i1p1_0851-1849_remapbil_HadCRUT4_decadal_mean.nc" ]; then
 			j=`echo $i | sed 's/_past1000/_piControl/;s/_CMIP5_r1i1p1_0851-1849_remapbil_HadCRUT4_decadal_mean.nc//'`
 			cp ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/remapped_to_HadCRUT4/$j* ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/remapped_to_${res}_monthly_mean
 		fi
@@ -393,12 +397,15 @@ if [ $actid -eq 6 ];then # calculate corresponding piControl time series
     cd ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/
 	
 	mean_list="annual_mean annual_mean_detrended decadal_mean decadal_running_mean decadal_running_mean_detrended"
+
 	
 	for mean in ${mean_list}; do	
 		mkdir -p global_mean_${mean}
 		mkdir -p global_mean_anomaly_${mean}
 		mkdir -p NH_mean_${mean}
 		mkdir -p NH_mean_anomaly_${mean}
+		mkdir -p SH_mean_${mean}
+		mkdir -p SH_mean_anomaly_${mean}
 		cd remapped_to_${res}_${mean}
 	
 		for model_file in *${remap}_${res}_${mean}.nc; do 
@@ -406,8 +413,10 @@ if [ $actid -eq 6 ];then # calculate corresponding piControl time series
 			# again calculate anomalies and anomaly-climatologies
 			cdo -r fldmean ${model_file} ../global_mean_${mean}/${variable}_global_mean_${model_name}_${remap}_${res}_${mean}.nc
 			cdo -r fldmean -sellonlatbox,-180,180,0,90 ${model_file} ../NH_mean_${mean}/${variable}_NH_mean_${model_name}_${remap}_${res}_${mean}.nc
+			cdo -r fldmean -sellonlatbox,-180,180,-90,0 ${model_file} ../SH_mean_${mean}/${variable}_SH_mean_${model_name}_${remap}_${res}_${mean}.nc
 			cdo -r sub ../global_mean_${mean}/${variable}_global_mean_${model_name}_${remap}_${res}_${mean}.nc -timmean ../global_mean_${mean}/${variable}_global_mean_${model_name}_${remap}_${res}_${mean}.nc ../global_mean_anomaly_${mean}/${variable}_global_mean_anomaly_${model_name}_${remap}_${res}_${mean}.nc
 			cdo -r sub ../NH_mean_${mean}/${variable}_NH_mean_${model_name}_${remap}_${res}_${mean}.nc -timmean ../NH_mean_${mean}/${variable}_NH_mean_${model_name}_${remap}_${res}_${mean}.nc ../NH_mean_anomaly_${mean}/${variable}_NH_mean_anomaly_${model_name}_${remap}_${res}_${mean}.nc
+			cdo -r sub ../SH_mean_${mean}/${variable}_SH_mean_${model_name}_${remap}_${res}_${mean}.nc -timmean ../SH_mean_${mean}/${variable}_SH_mean_${model_name}_${remap}_${res}_${mean}.nc ../SH_mean_anomaly_${mean}/${variable}_SH_mean_anomaly_${model_name}_${remap}_${res}_${mean}.nc
 		done
 		cd ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/
 	done	
@@ -477,7 +486,7 @@ if [ $actid -eq 9 ];then # detrend the past1000 simulations with piControl trend
 	cd remapped_to_${res}_annual_mean
 	
 	for i in *${remap}_${res}_annual_mean.nc; do
-		if [ "$i" != "tas_Amon_mmm_past1000_CMIP5_r1i1p1_0851-1849_remapbil_HadCRUT4_annual_mean.nc" ]; then
+		if [ "$i" != "pr_Amon_mmm_past1000_CMIP5_r1i1p1_0851-1849_remapbil_HadCRUT4_annual_mean.nc" ]; then
 			j=`echo $i | sed 's/_past1000/_piControl/;s/_CMIP5_r1i1p1_0851-1849_remapbil_HadCRUT4_annual_mean.nc//'`
 			k=$(ls ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/offsets/$j*)
 			l=$(ls ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/trends/$j*)
@@ -519,10 +528,14 @@ if [ $actid -eq 10 ];then # convert Mann et al data set from ascii to netcdf
 	cdo fldmean mann2009_reconstruction_0856-1845_decadal_mean.nc mann2009_reconstruction_global_mean_0856-1845_decadal_running_mean.nc
 	cdo fldmean -sellonlatbox,-180,180,0,90 mann2009_reconstruction_0851-1849_decadal_mean.nc mann2009_reconstruction_NH_mean_0851-1849_decadal_mean.nc
 	cdo fldmean -sellonlatbox,-180,180,0,90 mann2009_reconstruction_0856-1845_decadal_mean.nc mann2009_reconstruction_NH_mean_0856-1845_decadal_running_mean.nc
+	cdo fldmean -sellonlatbox,-180,180,-90,0 mann2009_reconstruction_0851-1849_decadal_mean.nc mann2009_reconstruction_SH_mean_0851-1849_decadal_mean.nc
+	cdo fldmean -sellonlatbox,-180,180,-90,0 mann2009_reconstruction_0856-1845_decadal_mean.nc mann2009_reconstruction_SH_mean_0856-1845_decadal_running_mean.nc
 	cdo sub mann2009_reconstruction_global_mean_0851-1849_decadal_mean.nc -timmean mann2009_reconstruction_global_mean_0851-1849_decadal_mean.nc mann2009_reconstruction_global_mean_anomaly_0851-1849_decadal_mean.nc
 	cdo sub mann2009_reconstruction_global_mean_0856-1845_decadal_running_mean.nc -timmean mann2009_reconstruction_global_mean_0856-1845_decadal_running_mean.nc mann2009_reconstruction_global_mean_anomaly_0856-1845_decadal_running_mean.nc
 	cdo sub mann2009_reconstruction_NH_mean_0851-1849_decadal_mean.nc -timmean mann2009_reconstruction_NH_mean_0851-1849_decadal_mean.nc mann2009_reconstruction_NH_mean_anomaly_0851-1849_decadal_mean.nc
 	cdo sub mann2009_reconstruction_NH_mean_0856-1845_decadal_running_mean.nc -timmean mann2009_reconstruction_NH_mean_0856-1845_decadal_running_mean.nc mann2009_reconstruction_NH_mean_anomaly_0856-1845_decadal_running_mean.nc
+	cdo sub mann2009_reconstruction_SH_mean_0851-1849_decadal_mean.nc -timmean mann2009_reconstruction_SH_mean_0851-1849_decadal_mean.nc mann2009_reconstruction_SH_mean_anomaly_0851-1849_decadal_mean.nc
+	cdo sub mann2009_reconstruction_SH_mean_0856-1845_decadal_running_mean.nc -timmean mann2009_reconstruction_SH_mean_0856-1845_decadal_running_mean.nc mann2009_reconstruction_SH_mean_anomaly_0856-1845_decadal_running_mean.nc
 	
 		
 fi

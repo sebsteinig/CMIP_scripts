@@ -31,7 +31,7 @@ fi
 ##########################################################################################
 
 experiment="piControl"				# CMIP5 experiments: historical,rcp45
-var="tas"				# CMIP variable to process (e.g. tos,tas,pr,psl,...)
+var="pr"				# CMIP variable to process (e.g. tos,tas,pr,psl,...)
 #var="tos"									# for full list see: http://cmip-pcmdi.llnl.gov/cmip5/docs/standard_output.pdf
 observations="NCEP"					# HadISST HadSST3 CMAP GPCP HadSLP2 MLD ERSST HadCRUT4 CERES_EBAF NCEP
 period=1870-2005					# time period for which the data gets processed
