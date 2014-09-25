@@ -23,7 +23,7 @@ if [ $(whoami) = "stein" ]; then            # check for system/user and adapt CM
     CMIP_dir="/Users/stein/Documents/Uni/Master/HiWi/CMIP"
     echo "user: stein"
 elif [ $(whoami) = "smomw200" ]; then
-    CMIP_dir="/gfs/scratch/smomw200/CMIP"
+    CMIP_dir=$WORK
     echo "user: smomw200"
     module load cdo
 fi
@@ -31,14 +31,14 @@ fi
 ##########################################################################################
 
 experiment="piControl"				# CMIP5 experiments: historical,rcp45
-var="pr"				# CMIP variable to process (e.g. tos,tas,pr,psl,...)
+var="tos"				# CMIP variable to process (e.g. tos,tas,pr,psl,...)
 #var="tos"									# for full list see: http://cmip-pcmdi.llnl.gov/cmip5/docs/standard_output.pdf
 observations="NCEP"					# HadISST HadSST3 CMAP GPCP HadSLP2 MLD ERSST HadCRUT4 CERES_EBAF NCEP
 period=1870-2005					# time period for which the data gets processed
 climatology_period=1980-1999
 res=HadCRUT4						# HadCRUT4, ERSST
 remap=remapbil
-actions="3 4" 						# choose which sections of the script get executed; see list above
+actions="2" 						# choose which sections of the script get executed; see list above
 
 ##########################################################################################	
 
@@ -94,7 +94,9 @@ if [ $actid -eq 1 ];then # create wget script
 	
     mkdir -p $CMIP_dir/data/CMIP5/$experiment/$realm/$variable; 
 
-	url="http://esgf-data.dkrz.de/esg-search/wget?&latest=true&replica=false&facets=id&limit=2000&project=CMIP5\
+	#url="http://esgf-data.dkrz.de/esg-search/wget?&latest=true&replica=false&facets=id&limit=2000&project=CMIP5\
+#&ensemble=r1i1p1&experiment=$experiment&realm=$cmor_table&time_frequency=mon&cmor_table=$realm&variable=$variable"
+url="http://esgf-data.dkrz.de/esg-search/wget?&latest=true&replica=false&facets=id&limit=2000\
 &ensemble=r1i1p1&experiment=$experiment&realm=$cmor_table&time_frequency=mon&cmor_table=$realm&variable=$variable"
 	wget -O $CMIP_dir/data/CMIP5/$experiment/$realm/$variable/wget.CMIP5.$realm.$experiment.mon.$variable.sh $url
 
