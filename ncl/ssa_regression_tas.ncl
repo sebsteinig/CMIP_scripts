@@ -23,7 +23,6 @@ do nt = 0,(dimsizes(f)-1)
 	delete(strs)
 end do
 
-print(model_name)
 
 dims=dimsizes(model_fields)
 proxy=new((/1,dims(1),dims(2),dims(3)/),"float")
@@ -38,18 +37,19 @@ names=array_append_record(model_name,"Mann et al. 2009 reconstruction",0)
 print(names)
 
 
-ssa_1_file=addfile(CMIP_dir+"/data/TSI/roth_for_sebastian/roth_ym_0000-2005.tsi_rec1.nc","r")
+ssa_1_file=addfile(CMIP_dir+"/data/TSI/roth_for_sebastian_new_ssa300/roth_ym_0000-2005.tsi_rec1.nc","r")
 ssa_1_tmp=ssa_1_file->tsi(:,0,0)
 ssa_1=ssa_1_tmp({time|856:1845})
-ssa_23_file=addfile(CMIP_dir+"/data/TSI/roth_for_sebastian/roth_ym_0000-2005.tsi_rec23.nc","r")
+ssa_23_file=addfile(CMIP_dir+"/data/TSI/roth_for_sebastian_new_ssa300/roth_ym_0000-2005.tsi_rec23.nc","r")
 ssa_23_tmp=ssa_23_file->tsi(:,0,0)
 ssa_23=ssa_23_tmp({time|856:1845})
-ssa_45_file=addfile(CMIP_dir+"/data/TSI/roth_for_sebastian/roth_ym_0000-2005.tsi_rec45.nc","r")
-ssa_45_tmp=ssa_45_file->tsi(:,0,0)
-ssa_45=ssa_45_tmp({time|856:1845})
-ssa_67_file=addfile(CMIP_dir+"/data/TSI/roth_for_sebastian/roth_ym_0000-2005.tsi_rec67.nc","r")
-ssa_67_tmp=ssa_67_file->tsi(:,0,0)
-ssa_67=ssa_67_tmp({time|856:1845})
+ssa_56_file=addfile(CMIP_dir+"/data/TSI/roth_for_sebastian_new_ssa300/roth_ym_0000-2005.tsi_rec56.nc","r")
+ssa_56_tmp=ssa_56_file->tsi(:,0,0)
+ssa_56=ssa_56_tmp({time|856:1845})
+
+total_TSI_file=addfile(CMIP_dir+"/data/TSI/Roth_and_Joos_2013/TSI_Holocene_Roth_and_Joos_2013.nc","r")
+total_TSI_tmp=total_TSI_file->TSI
+total_TSI=total_TSI_tmp({time|856:1845.5})
 
 
 dim_proxy = dimsizes(proxy)    ; determine the dimensions of "y"
@@ -59,10 +59,11 @@ ntim = dim_proxy(1)        ; not used in this example
 
 tval = new ((/nlat,nlon/) , float)    ; explicitly allocate space
 nxy  = new ((/nlat,nlon/) , integer)  ; explicitly allocate space
+nxy@_FillValue = 0
+ccr=new((/nlat,nlon/),float)
 rc   = regcoef (ssa_1,all_fields(ncl_join|0,latitude|:,longitude|:,time|:),tval,nxy)
 
 copy_VarMeta(proxy(0,0,:,:),rc)
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;Plots
@@ -81,92 +82,152 @@ res@lbLabelBarOn         = False             	; turn off individual lb's
 res@gsnLeftString=""
 res@gsnRightString=""
 
+res2=True
+res2@gsnDraw             = False       ; Do not draw plot
+res2@gsnFrame            = False       ; Do not advance frome
+res2@cnLinesOn        =  False             ; Turn off contour lines
+res2@cnLevelSelectionMode = "ExplicitLevels"
+res2@cnLevels             = (/.1,.2,.3,.4/)
+
+; Control which contour lines get drawn.
+res2@cnFillPatterns        = (/-1,17,3,4,6/)
+
+res2@lbLabelAutoStride   = True        ; Control labelbar spacing
+res2@cnMonoFillPattern    = False
+res2@cnMonoFillColor      = True  
+res2@cnFillOn            = True        ; Turn on contour fill
+res2@cnFillColor		="black"
+res2@cnFillScaleF	=	.5
+res2@cnInfoLabelOn	=	False
+res2@lbTitleOn        = True                  ; turn on title
+res2@lbTitleString    = "Explained Variance"
+res2@cnLineLabelsOn = False
+
+      
+
+
 
 resP                  = True                   ; modify the panel plot
 resP@lbOrientation    = "Horizontal"          ; vertical label bar
 resP@gsnMaximize      = True                   ; make ps, eps, pdf, ... large
 resP@gsnPanelLabelBar = True                   ; add common label bar
 
+
 ; Rec 1
-wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/SSA_1_regression")  ; open workstation 
-
+wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/SSA_1_regression_tas")  ; open workstation 
 plot = new(11,graphic)
-
+plot2 = new(11,graphic)
 gsn_define_colormap(wks,"BlueDarkRed18")
+
 res@cnMinLevelValF       = -2.0
 res@cnMaxLevelValF       =  2.0
 res@cnLevelSpacingF      =  .2
 
 do nn=0,10
 	rc   = regcoef (ssa_1,all_fields(ncl_join|nn,latitude|:,longitude|:,time|:),tval,nxy)
+	ccr_tmp = escorc(all_fields(ncl_join|nn,latitude|:,longitude|:,time|:),ssa_1)
+	ccr=ccr_tmp^2
 	copy_VarMeta(proxy(0,0,:,:),rc)
+	copy_VarMeta(proxy(0,0,:,:),ccr)
 	res@tiMainString     = names(nn)
+	if nn .eq. 10
+		res2@lbLabelBarOn         = True             	; turn off individual lb's
+		res2@lbOrientation    = "Vertical"          ; vertical label bar
+	else
+		res2@lbLabelBarOn         = False             	; turn off individual lb's
+	end if
 	plot(nn)=gsn_csm_contour_map(wks,rc,res)
+	plot2(nn)=gsn_csm_contour(wks,ccr,res2)
+	overlay (plot(nn), plot2(nn))
 end do
 
 resP@txString         = "Linear regression coeffcients SAT with TSI rec1"
 
 gsn_panel(wks,plot,(/4,3/),resP)               ; create panel plot
 
-; Rec 23
-wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/SSA_23_regression")  ; open workstation 
-plot = new(11,graphic)
 
+; Rec 23
+wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/SSA_23_regression_tas")  ; open workstation 
+plot = new(11,graphic)
 gsn_define_colormap(wks,"BlueDarkRed18")
-res@cnMinLevelValF       = -1.2
-res@cnMaxLevelValF       =  1.2
-res@cnLevelSpacingF      =  .1
+
 
 do nn=0,10
 	rc   = regcoef (ssa_23,all_fields(ncl_join|nn,latitude|:,longitude|:,time|:),tval,nxy)
+	ccr_tmp = escorc(all_fields(ncl_join|nn,latitude|:,longitude|:,time|:),ssa_23)
+	ccr=ccr_tmp^2
 	copy_VarMeta(proxy(0,0,:,:),rc)
+	copy_VarMeta(proxy(0,0,:,:),ccr)
 	res@tiMainString     = names(nn)
+	if nn .eq. 10
+		res2@lbLabelBarOn         = True             	; turn off individual lb's
+		res2@lbOrientation    = "Vertical"          ; vertical label bar
+	else
+		res2@lbLabelBarOn         = False             	; turn off individual lb's
+	end if
 	plot(nn)=gsn_csm_contour_map(wks,rc,res)
+	plot2(nn)=gsn_csm_contour(wks,ccr,res2)
+	overlay (plot(nn), plot2(nn))
 end do
 
 resP@txString         = "Linear regression coeffcients SAT with TSI rec23"
 
 gsn_panel(wks,plot,(/4,3/),resP)               ; create panel plot
 
-; Rec 45
-wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/SSA_45_regression")  ; open workstation 
+; Rec 56
+wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/SSA_56_regression_tas")  ; open workstation 
 plot = new(11,graphic)
-
 gsn_define_colormap(wks,"BlueDarkRed18")
-res@cnMinLevelValF       = -2.0
-res@cnMaxLevelValF       =  2.0
-res@cnLevelSpacingF      =  .2
 
 do nn=0,10
-	rc   = regcoef (ssa_45,all_fields(ncl_join|nn,latitude|:,longitude|:,time|:),tval,nxy)
+	rc   = regcoef (ssa_56,all_fields(ncl_join|nn,latitude|:,longitude|:,time|:),tval,nxy)
+	ccr_tmp = escorc(all_fields(ncl_join|nn,latitude|:,longitude|:,time|:),ssa_56)
+	ccr=ccr_tmp^2
 	copy_VarMeta(proxy(0,0,:,:),rc)
+	copy_VarMeta(proxy(0,0,:,:),ccr)
 	res@tiMainString     = names(nn)
+	if nn .eq. 10
+		res2@lbLabelBarOn         = True             	; turn off individual lb's
+		res2@lbOrientation    = "Vertical"          ; vertical label bar
+	else
+		res2@lbLabelBarOn         = False             	; turn off individual lb's
+	end if
 	plot(nn)=gsn_csm_contour_map(wks,rc,res)
+	plot2(nn)=gsn_csm_contour(wks,ccr,res2)
+	overlay (plot(nn), plot2(nn))
 end do
 
-resP@txString         = "Linear regression coeffcients SAT with TSI rec45"
+resP@txString         = "Linear regression coeffcients SAT with TSI rec56"
 
 gsn_panel(wks,plot,(/4,3/),resP)               ; create panel plot
 
-; Rec 67
-wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/SSA_67_regression")  ; open workstation 
+; Total TSI
+wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/SSA_total_TSI_regression_tas")  ; open workstation 
 plot = new(11,graphic)
-
 gsn_define_colormap(wks,"BlueDarkRed18")
-res@cnMinLevelValF       = -2.5
-res@cnMaxLevelValF       =  2.5
-res@cnLevelSpacingF      =  .2
 
 do nn=0,10
-	rc   = regcoef (ssa_67,all_fields(ncl_join|nn,latitude|:,longitude|:,time|:),tval,nxy)
+	rc   = regcoef (total_TSI,all_fields(ncl_join|nn,latitude|:,longitude|:,time|:),tval,nxy)
+	ccr_tmp = escorc(all_fields(ncl_join|nn,latitude|:,longitude|:,time|:),total_TSI)
+	ccr=ccr_tmp^2
 	copy_VarMeta(proxy(0,0,:,:),rc)
+	copy_VarMeta(proxy(0,0,:,:),ccr)
 	res@tiMainString     = names(nn)
+	if nn .eq. 10
+		res2@lbLabelBarOn         = True             	; turn off individual lb's
+		res2@lbOrientation    = "Vertical"          ; vertical label bar
+	else
+		res2@lbLabelBarOn         = False             	; turn off individual lb's
+	end if
 	plot(nn)=gsn_csm_contour_map(wks,rc,res)
+	plot2(nn)=gsn_csm_contour(wks,ccr,res2)
+	overlay (plot(nn), plot2(nn))
 end do
 
-resP@txString         = "Linear regression coeffcients SAT with TSI rec67"
+resP@txString         = "Linear regression coeffcients SAT with total TSI"
 
 gsn_panel(wks,plot,(/4,3/),resP)               ; create panel plot
+
 
 
 
