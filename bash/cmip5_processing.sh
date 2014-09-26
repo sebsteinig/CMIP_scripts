@@ -38,7 +38,7 @@ period=1870-2005					# time period for which the data gets processed
 climatology_period=1980-1999
 res=HadCRUT4						# HadCRUT4, ERSST
 remap=remapbil
-actions="2" 						# choose which sections of the script get executed; see list above
+actions="3 4" 						# choose which sections of the script get executed; see list above
 
 ##########################################################################################	
 

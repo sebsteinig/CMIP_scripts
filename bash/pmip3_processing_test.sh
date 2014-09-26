@@ -30,7 +30,7 @@ period=0851-1849					# time period for which the data gets processed
 climatology_period=0851-1849
 res=HadCRUT4						# HadCRUT4, ERSST
 remap=remapbil
-actions="8" 						# choose which sections of the script get executed; see list above
+actions="5 6 7 8" 						# choose which sections of the script get executed; see list above
 
 ##########################################################################################	
 
@@ -325,7 +325,7 @@ if [ $actid -eq 5 ];then # find corresponding piControl time series
 	
 	for i in *${remap}_${res}_annual_mean.nc; do # copy for each available past1000 model the corresponding piControl data into separate folder
 		j=`echo $i | sed 's/'${variable}'_'${realm}'_//;s/_'${experiment}'_CMIP5_r1i1p1.*//'` # j is the model name
-		if [ "$j" == "MPI-ESM-P" ] || [ "$j" == "MRI-CGCM3" ]; then
+		if [ "$j" != "mmm" ]; then
 			k=`echo $i | sed 's/_'${experiment}'/_piControl/;s/_CMIP5_r1i1p1.*//'`
 			cp ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/remapped_to_HadCRUT4/$k* ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/remapped_to_${res}_monthly_mean
 		fi
@@ -386,7 +386,7 @@ if [ $actid -eq 7 ];then # detrend the past1000 simulations with piControl trend
 	
 	for i in *${remap}_${res}.nc; do
 		j=`echo $i | sed 's/'${variable}'_'${realm}'_//;s/_'${experiment}'_CMIP5_r1i1p1.*//'` # j is the model name
-		if [ "$j" == "MPI-ESM-P" ] || [ "$j" == "MRI-CGCM3" ]; then
+		if [ "$j" != "mmm" ]; then
 			#j=`echo $i | sed 's/_past1000/_piControl/;s/_CMIP5_r1i1p1.*//'`
 			k=$(ls ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/offsets/*$j*)
 			echo $k
@@ -418,9 +418,7 @@ if [ $actid -eq 8 ];then # calculate spatial means and anomalies for past1000 ex
 	
     cd ${CMIP_dir}/processed/CMIP5/$experiment/$realm/$variable/
 	
-	#mean_list="annual_mean annual_mean_detrended decadal_running_mean decadal_running_mean_detrended"
-	mean_list="annual_mean_detrended"
-
+	mean_list="annual_mean annual_mean_detrended decadal_running_mean decadal_running_mean_detrended"
 	
 	for mean in ${mean_list}; do	
 		mkdir -p global_mean_${mean}
@@ -473,7 +471,7 @@ if [ $actid -eq 8 ];then # calculate spatial means and anomalies for past1000 ex
 			#cdo eofcoeff ../PDO_${mean}/$o ../PDO_${mean}/$n ../PDO_${mean}/$p
 			#rm -f eval.nc
 			
-			# calculate same indices for pi COntrol
+			# calculate same indices for pi Control
 			if [ "${model_name}" != "mmm" ]; then
 				cdo sub -fldmean -sellonlatbox,-150,-90,-5,5 ${piControl_file} -timmean -fldmean -sellonlatbox,-150,-90,-5,5 ${piControl_file} ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/NINO3_${mean}/${variable}_${realm}_${model_name}_piControl_CMIP5_r1l1p1_${remap}_${res}_${mean}_NINO3_index.nc
 				cdo sub -fldmean -sellonlatbox,-75,-7.5,0,70 ${piControl_file} -timmean -fldmean -sellonlatbox,-75,-7.5,0,70 ${piControl_file} ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/AMO_${mean}/${variable}_${realm}_${model_name}_piControl_CMIP5_r1l1p1_${remap}_${res}_${mean}_AMO_index.nc
