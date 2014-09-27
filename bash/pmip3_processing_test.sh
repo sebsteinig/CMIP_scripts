@@ -30,7 +30,7 @@ period=0851-1849					# time period for which the data gets processed
 climatology_period=0851-1849
 res=HadCRUT4						# HadCRUT4, ERSST
 remap=remapbil
-actions="5 6 7 8" 						# choose which sections of the script get executed; see list above
+actions="8" 						# choose which sections of the script get executed; see list above
 
 ##########################################################################################	
 
@@ -327,7 +327,9 @@ if [ $actid -eq 5 ];then # find corresponding piControl time series
 		j=`echo $i | sed 's/'${variable}'_'${realm}'_//;s/_'${experiment}'_CMIP5_r1i1p1.*//'` # j is the model name
 		if [ "$j" != "mmm" ]; then
 			k=`echo $i | sed 's/_'${experiment}'/_piControl/;s/_CMIP5_r1i1p1.*//'`
-			cp ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/remapped_to_HadCRUT4/$k* ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/remapped_to_${res}_monthly_mean
+			l=$(ls ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/remapped_to_HadCRUT4/$k*)
+			m=`echo $l | sed 's/.*remapped_to_'${res}'\///;s/.nc/_monthly_mean.nc/'`
+			cp $l ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/remapped_to_${res}_monthly_mean/$m
 		fi
 	done
 	
@@ -345,9 +347,9 @@ if [ $actid -eq 6 ];then # detrend the corresponding piControl time series
  	
  	cd remapped_to_${res}_monthly_mean
  	
- 	for i in *${remap}_${res}.nc; do
- 		j=`echo $i | sed 's/.nc/_monthly_offset.nc/'`
- 		k=`echo $i | sed 's/.nc/_monthly_trend.nc/'`
+ 	for i in *${remap}_${res}_monthly_mean.nc; do
+ 		j=`echo $i | sed 's/.nc/_offset.nc/'`
+ 		k=`echo $i | sed 's/.nc/_trend.nc/'`
  		l=`echo $i | sed 's/.nc/_detrended.nc/'`
  
  		cdo trend $i ../offsets/$j.tmp ../trends/$k
@@ -360,11 +362,11 @@ if [ $actid -eq 6 ];then # detrend the corresponding piControl time series
 	cd ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/remapped_to_${res}_monthly_mean
 	
 	for i in *.nc; do
-		j=`echo $i | sed 's/_HadCRUT4.nc/_HadCRUT4_detrended.nc/'`
-		k=`echo $i | sed 's/_HadCRUT4.nc/_HadCRUT4_annual_mean.nc/'`
-		l=`echo $i | sed 's/_HadCRUT4.nc/_HadCRUT4_annual_mean_detrended.nc/'`
-		m=`echo $i | sed 's/_HadCRUT4.nc/_HadCRUT4_decadal_running_mean.nc/'`
-		n=`echo $i | sed 's/_HadCRUT4.nc/_HadCRUT4_decadal_running_mean_detrended.nc/'`
+		j=`echo $i | sed 's/_monthly_mean.nc/_monthly_mean_detrended.nc/'`
+		k=`echo $i | sed 's/_monthly_mean.nc/_annual_mean.nc/'`
+		l=`echo $i | sed 's/_monthly_mean.nc/_annual_mean_detrended.nc/'`
+		m=`echo $i | sed 's/_monthly_mean.nc/_decadal_running_mean.nc/'`
+		n=`echo $i | sed 's/_monthly_mean.nc/_decadal_running_mean_detrended.nc/'`
 		
 		cdo yearmean $i ../remapped_to_${res}_annual_mean/$k
 		cdo yearmean ../remapped_to_${res}_monthly_mean_detrended/$j ../remapped_to_${res}_annual_mean_detrended/$l
@@ -392,20 +394,23 @@ if [ $actid -eq 7 ];then # detrend the past1000 simulations with piControl trend
 			echo $k
 			l=$(ls ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/trends/*$j*)
 			echo $l
-			m=`echo $i | sed 's/.nc/_detrended.nc/'`
+			m=`echo $i | sed 's/.nc/_monthly_mean_detrended.nc/'`
 			
 			cdo subtrend $i $k $l ../remapped_to_${res}_monthly_mean_detrended/$m
 			rm -f ../remapped_to_${res}_monthly_mean_detrended/*mmm*
-			cdo ensmean ../remapped_to_${res}_monthly_mean_detrended/*.nc ../remapped_to_${res}_monthly_mean_detrended/${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${period}_${remap}_HadCRUT4_detrended.nc
+			cdo ensmean ../remapped_to_${res}_monthly_mean_detrended/*.nc ../remapped_to_${res}_monthly_mean_detrended/${variable}_${realm}_mmm_${experiment}_CMIP5_r1i1p1_${period}_${remap}_HadCRUT4_monthly_mean_detrended.nc
 		fi
+		#n=`echo $i | sed 's/.nc/_monthly_mean_detrended.nc/'`
+		#mv $i $n
+
 	done
 	
 	cd 	../remapped_to_${res}_monthly_mean_detrended
 	
 	# calculate detrended annual and decadal running mean fields
-	for i in *${remap}_${res}_detrended.nc; do
-		j=`echo $i | sed 's/_detrended.nc/_annual_mean_detrended.nc/'`
-		k=`echo $i | sed 's/_detrended.nc/_decadal_running_mean_detrended.nc/'`
+	for i in *${remap}_${res}_monthly_mean_detrended.nc; do
+		j=`echo $i | sed 's/monthly_mean/annual_mean/'`
+		k=`echo $i | sed 's/monthly_mean/decadal_running_mean/'`
 		cdo yearmean $i ../remapped_to_${res}_annual_mean_detrended/$j
 		cdo runmean,11 $i ../remapped_to_${res}_decadal_running_mean_detrended/$k
 	done	
@@ -418,7 +423,7 @@ if [ $actid -eq 8 ];then # calculate spatial means and anomalies for past1000 ex
 	
     cd ${CMIP_dir}/processed/CMIP5/$experiment/$realm/$variable/
 	
-	mean_list="annual_mean annual_mean_detrended decadal_running_mean decadal_running_mean_detrended"
+	mean_list="monthly_mean_detrended annual_mean annual_mean_detrended decadal_running_mean decadal_running_mean_detrended"
 	
 	for mean in ${mean_list}; do	
 		mkdir -p global_mean_${mean}
@@ -461,20 +466,44 @@ if [ $actid -eq 8 ];then # calculate spatial means and anomalies for past1000 ex
 			cdo sub ../SH_mean_${mean}/${variable}_SH_mean_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc -timmean ../SH_mean_${mean}/${variable}_SH_mean_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc ../SH_mean_anomaly_${mean}/${variable}_SH_mean_anomaly_${start_period}-${end_period}_${model_name}_${remap}_${res}_${mean}.nc
 			cdo timmean -selyear,950/1250 -sub ${model_file} -timmean ${model_file} ../MCA_anomaly_${mean}/$j
 			cdo timmean -selyear,1400/1700 -sub ${model_file} -timmean ${model_file} ../LIA_anomaly_${mean}/$k
+			
 			# NINO3
-			cdo sub -fldmean -sellonlatbox,-150,-90,-5,5 ${model_file} -timmean -fldmean -sellonlatbox,-150,-90,-5,5 ${model_file} ../NINO3_${mean}/$l
+			if [ "${mean}" == "monthly_mean_detrended" ]; then
+				cdo runmean,6 -ymonsub -fldmean -sellonlatbox,-150,-90,-5,5 ${model_file} -ymonmean -fldmean -sellonlatbox,-150,-90,-5,5 ${model_file} ../NINO3_${mean}/$l
+			else
+				cdo ymonsub -fldmean -sellonlatbox,-150,-90,-5,5 ${model_file} -ymonmean -fldmean -sellonlatbox,-150,-90,-5,5 ${model_file} ../NINO3_${mean}/$l
+			fi
 			# AMO
-			cdo sub -fldmean -sellonlatbox,-75,-7.5,0,70 ${model_file} -timmean -fldmean -sellonlatbox,-75,-7.5,0,70 ${model_file} ../AMO_${mean}/$m
+			if [ "${mean}" == "monthly_mean_detrended" ]; then # apply 11 year running mean
+				cdo runmean,132 -ymonsub -fldmean -sellonlatbox,-75,-7.5,0,70 ${model_file} -ymonmean -fldmean -sellonlatbox,-75,-7.5,0,70 ${model_file} ../AMO_${mean}/$m
+			elif [ "${mean}" == "annual_mean" ] || [ "${mean}" == "annual_mean_detrended" ]; then # apply 11 year running mean
+				cdo runmean,11 -ymonsub -fldmean -sellonlatbox,-75,-7.5,0,70 ${model_file} -ymonmean -fldmean -sellonlatbox,-75,-7.5,0,70 ${model_file} ../AMO_${mean}/$m
+			else # already 11 year running mean applied
+				cdo ymonsub -fldmean -sellonlatbox,-75,-7.5,0,70 ${model_file} -ymonmean -fldmean -sellonlatbox,-75,-7.5,0,70 ${model_file} ../AMO_${mean}/$m
+			fi
+
 			# PDO
 			#cdo sub -sellonlatbox,120,-105,20,70 ${model_file} -timmean -sellonlatbox,120,-105,20,70 ${model_file} ../PDO_${mean}/$n
 			#cdo eof,1  ../PDO_${mean}/$n ../PDO_${mean}/eval.nc ../PDO_${mean}/$o
 			#cdo eofcoeff ../PDO_${mean}/$o ../PDO_${mean}/$n ../PDO_${mean}/$p
 			#rm -f eval.nc
 			
-			# calculate same indices for pi Control
+			# calculate same indices for piControl
 			if [ "${model_name}" != "mmm" ]; then
-				cdo sub -fldmean -sellonlatbox,-150,-90,-5,5 ${piControl_file} -timmean -fldmean -sellonlatbox,-150,-90,-5,5 ${piControl_file} ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/NINO3_${mean}/${variable}_${realm}_${model_name}_piControl_CMIP5_r1l1p1_${remap}_${res}_${mean}_NINO3_index.nc
-				cdo sub -fldmean -sellonlatbox,-75,-7.5,0,70 ${piControl_file} -timmean -fldmean -sellonlatbox,-75,-7.5,0,70 ${piControl_file} ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/AMO_${mean}/${variable}_${realm}_${model_name}_piControl_CMIP5_r1l1p1_${remap}_${res}_${mean}_AMO_index.nc
+				# NINO3
+				if [ "${mean}" == "monthly_mean_detrended" ]; then
+					cdo runmean,6 -ymonsub -fldmean -sellonlatbox,-150,-90,-5,5 ${piControl_file} -ymonmean -fldmean -sellonlatbox,-150,-90,-5,5 ${piControl_file} ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/NINO3_${mean}/${variable}_${realm}_${model_name}_piControl_CMIP5_r1l1p1_${remap}_${res}_${mean}_NINO3_index.nc
+				else
+					cdo ymonsub -fldmean -sellonlatbox,-150,-90,-5,5 ${piControl_file} -ymonmean -fldmean -sellonlatbox,-150,-90,-5,5 ${piControl_file} ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/NINO3_${mean}/${variable}_${realm}_${model_name}_piControl_CMIP5_r1l1p1_${remap}_${res}_${mean}_NINO3_index.nc
+				fi
+				# AMO
+				if [ "${mean}" == "monthly_mean_detrended" ]; then # apply 11 year running mean
+					cdo runmean,132 -ymonsub -fldmean -sellonlatbox,-75,-7.5,0,70 ${piControl_file} -ymonmean -fldmean -sellonlatbox,-75,-7.5,0,70 ${piControl_file} ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/AMO_${mean}/${variable}_${realm}_${model_name}_piControl_CMIP5_r1l1p1_${remap}_${res}_${mean}_AMO_index.nc
+				elif [ "${mean}" == "annual_mean" ] || [ "${mean}" == "annual_mean_detrended" ]; then # apply 11 year running mean
+					cdo runmean,11 -ymonsub -fldmean -sellonlatbox,-75,-7.5,0,70 ${piControl_file} -ymonmean -fldmean -sellonlatbox,-75,-7.5,0,70 ${piControl_file} ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/AMO_${mean}/${variable}_${realm}_${model_name}_piControl_CMIP5_r1l1p1_${remap}_${res}_${mean}_AMO_index.nc
+				else # already 11 year running mean applied
+					cdo ymonsub -fldmean -sellonlatbox,-75,-7.5,0,70 ${piControl_file} -ymonmean -fldmean -sellonlatbox,-75,-7.5,0,70 ${piControl_file} ${CMIP_dir}/processed/CMIP5/piControl/$realm/$variable/AMO_${mean}/${variable}_${realm}_${model_name}_piControl_CMIP5_r1l1p1_${remap}_${res}_${mean}_AMO_index.nc
+				fi
 			fi
 		done
 		cd ${CMIP_dir}/processed/CMIP5/$experiment/$realm/$variable/
