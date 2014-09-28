@@ -28,28 +28,18 @@ for K = 1:numfids
        nino_tmp_ctrl_annual(ii,1)=mean(nino_tmp_ctrl((12*ii)-11:12*ii,1));
   end
   
-  amo_tmp_ctrl=squeeze(ncread(strcat('../../processed/CMIP5/piControl/Omon/tos/AMO_original_resolution_monthly_mean_detrended/',fnames_amo_ctrl(K).name),'tos'));
-  amo_tmp_ctrl_annual=NaN(floor(length(amo_tmp_ctrl)/12),1);
-  for ii=1:length(amo_tmp_ctrl)/12
-       amo_tmp_ctrl_annual(ii,1)=mean(amo_tmp_ctrl((12*ii)-11:12*ii,1));
+   nino_tmp_ctrl=squeeze(ncread(strcat('../../processed/CMIP5/piControl/Omon/tos/NINO3_original_resolution_monthly_mean_detrended/',fnames_nino_ctrl(K).name),'tos'));
+  nino_tmp_ctrl_annual=NaN(floor(length(nino_tmp_ctrl)/12),1);
+  for ii=1:length(nino_tmp_ctrl)/12
+       nino_tmp_ctrl_annual(ii,1)=mean(nino_tmp_ctrl((12*ii)-11:12*ii,1));
   end
 
   
-  nino_time_ctrl(K,1:length(nino_tmp_ctrl_annual))=[1:1:length(nino_tmp_ctrl_annual)];
-  nino_length_time_ctrl(K)=length(nino_tmp_ctrl_annual);
-  nino_time_past(K,1:length(nino_tmp_past_annual))=[1:1:length(nino_tmp_past_annual)];
-  nino_length_time_past(K)=length(nino_tmp_past_annual);
-
-  amo_time_ctrl(K,1:length(amo_tmp_ctrl_annual))=[1:1:length(amo_tmp_ctrl_annual)];
-  amo_length_time_ctrl(K)=length(amo_tmp_ctrl_annual);
-  amo_time_past(K,1:length(amo_tmp_past_annual))=[1:1:length(amo_tmp_past_annual)];
-  amo_length_time_past(K)=length(amo_tmp_past_annual);
+  time_ctrl(K,1:length(tmp_ctrl_annual))=[1:1:length(tmp_ctrl_annual)];
+  length_time_ctrl(K)=length(tmp_ctrl_annual);
   
   nino_past(K,1:length(nino_tmp_past_annual))=nino_tmp_past_annual;
   nino_ctrl(K,1:length(nino_tmp_ctrl_annual))=nino_tmp_ctrl_annual;
-  amo_past(K,1:length(amo_tmp_past_annual))=amo_tmp_past_annual;
-  amo_ctrl(K,1:length(amo_tmp_ctrl_annual))=amo_tmp_ctrl_annual;
-  
   model_names_tmp(K,:)=strsplit(fnames_nino_past(K).name,'_');
   model_names(K,1)=model_names_tmp(K,3);
 
@@ -58,8 +48,7 @@ end
 ct=load('WhiteBlueGreenYellowRed.rgb');
 ct=ct/256;
 
-%nino_time_past=[1:1:length(nino_tmp_past_annual)];
-%amo_time_past=[1:1:length(amo_tmp_past_annual)];
+time_past=[1:1:length(tmp_past_annual)];
 
 
 
@@ -99,8 +88,7 @@ if plot_nino_past==1
 
     for nn=1:7   
         subplot(4,2,nn)
-        wt([nino_time_past(nn,1:nino_length_time_past(nn));nino_past(nn,1:nino_length_time_past(nn))],'S0',min_scale,'maxscale',max_scale,'Pad',1);
-        %caxis([log2(1/16) log2(16)]);
+        wt([time_past;nino_past(nn,:)],'S0',min_scale,'maxscale',max_scale,'Pad',1);
         title(model_names(nn),'fontsize',font_size);
     end
 
@@ -127,7 +115,7 @@ if plot_nino_ctrl==1
 
     for nn=1:7   
         subplot(4,2,nn)
-        wt([nino_time_ctrl(nn,1:nino_length_time_ctrl(nn));nino_ctrl(nn,1:nino_length_time_ctrl(nn))],'S0',min_scale,'maxscale',max_scale,'Pad',1);
+        wt([time_ctrl(nn,1:length_time_ctrl(nn));nino_ctrl(nn,1:length_time_ctrl(nn))],'S0',min_scale,'maxscale',max_scale,'Pad',1);
         title(model_names(nn),'fontsize',font_size);
     end
 
@@ -155,7 +143,7 @@ if plot_amo_past==1
 
     for nn=1:7   
         subplot(4,2,nn)
-        wt([amo_time_past(nn,1:amo_length_time_past(nn));amo_past(nn,1:amo_length_time_past(nn))],'S0',min_scale,'maxscale',max_scale,'Pad',1);
+        wt([time_past;amo_past(nn,:)],'S0',min_scale,'maxscale',max_scale,'Pad',1);
         title(model_names(nn),'fontsize',font_size);
     end
 
@@ -182,7 +170,7 @@ if plot_amo_ctrl==1
 
     for nn=1:7   
         subplot(4,2,nn)
-        wt([amo_time_ctrl(nn,1:amo_length_time_ctrl(nn));amo_ctrl(nn,1:amo_length_time_ctrl(nn))],'S0',min_scale,'maxscale',max_scale,'Pad',1);
+        wt([time_ctrl(nn,1:length_time_ctrl(nn));amo_ctrl(nn,1:length_time_ctrl(nn))],'S0',min_scale,'maxscale',max_scale,'Pad',1);
         title(model_names(nn),'fontsize',font_size);
     end
 

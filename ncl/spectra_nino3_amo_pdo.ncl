@@ -11,22 +11,22 @@ begin
 
 CMIP_dir="/Users/stein/Documents/Uni/Master/HiWi/CMIP/"
 
-nino_past_directory=CMIP_dir+"processed/CMIP5/past1000/Omon/tos/NINO3_monthly_mean_detrended/"
+nino_past_directory=CMIP_dir+"processed/CMIP5/past1000/Omon/tos/NINO3_original_resolution_monthly_mean_detrended/"
 nino_past_files = systemfunc ("ls "+nino_past_directory+"*.nc")
 nino_past_tmp=addfiles(nino_past_files,"r")
 ListSetType (nino_past_tmp, "join")
 
-nino_ctrl_directory=CMIP_dir+"processed/CMIP5/piControl/Omon/tos/NINO3_monthly_mean_detrended/"
+nino_ctrl_directory=CMIP_dir+"processed/CMIP5/piControl/Omon/tos/NINO3_original_resolution_monthly_mean_detrended/"
 nino_ctrl_files = systemfunc ("ls "+nino_ctrl_directory+"*.nc")
 nino_ctrl_tmp=addfiles(nino_ctrl_files,"r")
 ListSetType (nino_ctrl_tmp, "join")
 
-amo_past_directory=CMIP_dir+"processed/CMIP5/past1000/Omon/tos/AMO_monthly_mean_detrended/"
+amo_past_directory=CMIP_dir+"processed/CMIP5/past1000/Omon/tos/AMO_original_resolution_monthly_mean_detrended/"
 amo_past_files = systemfunc ("ls "+amo_past_directory+"*.nc")
 amo_past_tmp=addfiles(amo_past_files,"r")
 ListSetType (amo_past_tmp, "join")
 
-amo_ctrl_directory=CMIP_dir+"processed/CMIP5/piControl/Omon/tos/AMO_monthly_mean_detrended/"
+amo_ctrl_directory=CMIP_dir+"processed/CMIP5/piControl/Omon/tos/AMO_original_resolution_monthly_mean_detrended/"
 amo_ctrl_files = systemfunc ("ls "+amo_ctrl_directory+"*.nc")
 amo_ctrl_tmp=addfiles(amo_ctrl_files,"r")
 ListSetType (amo_ctrl_tmp, "join")
@@ -34,21 +34,19 @@ ListSetType (amo_ctrl_tmp, "join")
 model_name=nino_past_files
 do nt = 0,(dimsizes(nino_past_files)-1)
 	strs=str_split(nino_past_files(nt),"_")
-	model_name(nt)=strs(5)
+	model_name(nt)=strs(7)
 	delete(strs)
 end do
 
 print(model_name)
 
 
-nino_past=nino_past_tmp[:]->tos(:,:,0,0)
-amo_past=amo_past_tmp[:]->tos(:,:,0,0)
 
 
 
 
 d   = 1    ; detrending opt: 0=>remove mean 1=>remove mean + detrend
-sm  = 3    ; smooth: should be at least 3 and odd
+sm  = 27    ; smooth: should be at least 3 and odd
 pct = 0.10 ; percent taper: (0.0 <= pct <= 1.0) 0.10 common. 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -57,7 +55,7 @@ pct = 0.10 ; percent taper: (0.0 <= pct <= 1.0) 0.10 common.
  
  
 ; NINO3
-create_plot=0
+create_plot=1
 
 if (create_plot .eq. 1) then
 
@@ -105,8 +103,9 @@ r2@tmYRMinorPerMajor = 8
 
 do nn=0,6
 	
+	nino_past=nino_past_tmp[nn]->tos(:,:,0,0)
 	; calculate spectrum
-	sdof_past = specx_anal(nino_past(nn,:),d,sm,pct)
+	sdof_past = specx_anal(nino_past(0,:),d,sm,pct)
 
 	; calculate confidence interval [here 1 and 99%] return 4 curves to be plotted
 	splt_past = specx_ci (sdof_past, 0.01, 0.99)
@@ -123,7 +122,7 @@ do nn=0,6
 	
 	overlay (plot(nn), plot2(nn))
 	
-	delete([/nino_ctrl,sdof_past,sdof_ctrl,splt_past,splt_ctrl/])
+	delete([/nino_ctrl,nino_past,sdof_past,sdof_ctrl,splt_past,splt_ctrl/])
 	
 end do
 
@@ -185,8 +184,9 @@ r2@tmYRMinorPerMajor = 8
 
 do nn=0,6
 	
+	amo_past=amo_past_tmp[nn]->tos(:,:,0,0)
 	; calculate spectrum
-	sdof_past = specx_anal(amo_past(nn,:),d,sm,pct)
+	sdof_past = specx_anal(amo_past(0,:),d,sm,pct)
 
 	; calculate confidence interval [here 1 and 99%] return 4 curves to be plotted
 	splt_past = specx_ci (sdof_past, 0.01, 0.99)
@@ -203,7 +203,7 @@ do nn=0,6
 	
 	overlay (plot(nn), plot2(nn))
 	
-	delete([/amo_ctrl,sdof_past,sdof_ctrl,splt_past,splt_ctrl/])
+	delete([/amo_ctrl,amo_past,sdof_past,sdof_ctrl,splt_past,splt_ctrl/])
 	
 end do
 
