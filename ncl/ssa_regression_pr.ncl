@@ -109,6 +109,7 @@ wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/SSA_1_regression_pr")  ; o
 plot = new(7,graphic)
 plot2 = new(7,graphic)
 gsn_define_colormap(wks,"BlueDarkRed18")
+		gsn_reverse_colormap(wks)
 
 res@cnMinLevelValF       = -1.0
 res@cnMaxLevelValF       =  1.0
@@ -141,6 +142,7 @@ gsn_panel(wks,plot,(/3,3/),resP)               ; create panel plot
 wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/SSA_23_regression_pr")  ; open workstation 
 plot = new(7,graphic)
 gsn_define_colormap(wks,"BlueDarkRed18")
+		gsn_reverse_colormap(wks)
 
 
 do nn=0,6
@@ -169,6 +171,7 @@ gsn_panel(wks,plot,(/3,3/),resP)               ; create panel plot
 wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/SSA_56_regression_pr")  ; open workstation 
 plot = new(7,graphic)
 gsn_define_colormap(wks,"BlueDarkRed18")
+		gsn_reverse_colormap(wks)
 
 do nn=0,6
 	rc   = regcoef (ssa_56,model_fields(ncl_join|nn,latitude|:,longitude|:,time|:),tval,nxy)
@@ -196,6 +199,7 @@ gsn_panel(wks,plot,(/3,3/),resP)               ; create panel plot
 wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/SSA_total_TSI_regression_pr")  ; open workstation 
 plot = new(7,graphic)
 gsn_define_colormap(wks,"BlueDarkRed18")
+		gsn_reverse_colormap(wks)
 
 do nn=0,6
 	rc   = regcoef (total_TSI,model_fields(ncl_join|nn,latitude|:,longitude|:,time|:),tval,nxy)

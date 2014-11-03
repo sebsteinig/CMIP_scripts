@@ -30,7 +30,7 @@ period=0851-1849					# time period for which the data gets processed
 climatology_period=0851-1849
 res=HadCRUT4						# HadCRUT4, ERSST
 remap=remapbil
-actions="8" 						# choose which sections of the script get executed; see list above
+actions="9" 						# choose which sections of the script get executed; see list above
 
 ##########################################################################################	
 
@@ -579,33 +579,107 @@ fi
 
 ##########################################################################################
     
-if [ $actid -eq 20 ];then # process KCM data
-	
-    cd ${CMIP_dir}/data/KCM/NH_mean_annual
+# if [ $actid -eq 20 ];then # process KCM data
+# 	
+#     cd ${CMIP_dir}/data/KCM/NH_mean_annual
+#     
+#     	cdo sub temp2_P86_NH_mean_annual_2500-6699.nc -timmean temp2_P86_NH_mean_annual_2500-6699.nc temp2_P86_NH_mean_anomaly_annual_2500-6699.nc
+#     	cdo sub temp2_P90_NH_mean_annual_2500-6699.nc -timmean temp2_P90_NH_mean_annual_2500-6699.nc temp2_P90_NH_mean_anomaly_annual_2500-6699.nc
+#     	cdo sub temp2_P93_NH_mean_annual_2500-6699.nc -timmean temp2_P93_NH_mean_annual_2500-6699.nc temp2_P93_NH_mean_anomaly_annual_2500-6699.nc
+# 
+# 		cdo runmean,11 temp2_P86_NH_mean_anomaly_annual_2500-6699.nc temp2_P86_NH_mean_anomaly_decadal_2500-6699.nc
+# 		cdo runmean,11 temp2_P90_NH_mean_anomaly_annual_2500-6699.nc temp2_P90_NH_mean_anomaly_decadal_2500-6699.nc
+# 		cdo runmean,11 temp2_P93_NH_mean_anomaly_annual_2500-6699.nc temp2_P93_NH_mean_anomaly_decadal_2500-6699.nc
+# 		
+# 		cdo trend temp2_P86_NH_mean_annual_2500-6699.nc ctrl_offset.tmp.nc ctrl_trend.nc
+# 		cdo setmisstoc,0 -setrtomiss,-9999,9999 ctrl_offset.tmp.nc ctrl_offset.nc
+# 		rm ctrl_offset.tmp.nc
+# 		cdo subtrend temp2_P86_NH_mean_annual_2500-6699.nc ctrl_offset.nc ctrl_trend.nc temp2_P86_NH_mean_annual_2500-6699_detrended.nc
+# 		cdo subtrend temp2_P90_NH_mean_annual_2500-6699.nc ctrl_offset.nc ctrl_trend.nc temp2_P90_NH_mean_annual_2500-6699_detrended.nc
+# 		cdo subtrend temp2_P93_NH_mean_annual_2500-6699.nc ctrl_offset.nc ctrl_trend.nc temp2_P93_NH_mean_annual_2500-6699_detrended.nc
+# 
+# 	    cdo sub temp2_P86_NH_mean_annual_2500-6699_detrended.nc -timmean temp2_P86_NH_mean_annual_2500-6699_detrended.nc temp2_P86_NH_mean_anomaly_annual_2500-6699_detrended.nc
+# 	    cdo sub temp2_P90_NH_mean_annual_2500-6699_detrended.nc -timmean temp2_P90_NH_mean_annual_2500-6699_detrended.nc temp2_P90_NH_mean_anomaly_annual_2500-6699_detrended.nc
+# 	    cdo sub temp2_P93_NH_mean_annual_2500-6699_detrended.nc -timmean temp2_P93_NH_mean_annual_2500-6699_detrended.nc temp2_P93_NH_mean_anomaly_annual_2500-6699_detrended.nc	
+# 	    
+# 	    cdo runmean,11 temp2_P86_NH_mean_anomaly_annual_2500-6699_detrended.nc temp2_P86_NH_mean_anomaly_decadal_2500-6699_detrended.nc
+# 		cdo runmean,11 temp2_P90_NH_mean_anomaly_annual_2500-6699_detrended.nc temp2_P90_NH_mean_anomaly_decadal_2500-6699_detrended.nc
+# 		cdo runmean,11 temp2_P93_NH_mean_anomaly_annual_2500-6699_detrended.nc temp2_P93_NH_mean_anomaly_decadal_2500-6699_detrended.nc
+# fi
+
+##########################################################################################
     
-    	cdo sub temp2_P86_NH_mean_annual_2500-6699.nc -timmean temp2_P86_NH_mean_annual_2500-6699.nc temp2_P86_NH_mean_anomaly_annual_2500-6699.nc
-    	cdo sub temp2_P90_NH_mean_annual_2500-6699.nc -timmean temp2_P90_NH_mean_annual_2500-6699.nc temp2_P90_NH_mean_anomaly_annual_2500-6699.nc
-    	cdo sub temp2_P93_NH_mean_annual_2500-6699.nc -timmean temp2_P93_NH_mean_annual_2500-6699.nc temp2_P93_NH_mean_anomaly_annual_2500-6699.nc
-
-		cdo runmean,11 temp2_P86_NH_mean_anomaly_annual_2500-6699.nc temp2_P86_NH_mean_anomaly_decadal_2500-6699.nc
-		cdo runmean,11 temp2_P90_NH_mean_anomaly_annual_2500-6699.nc temp2_P90_NH_mean_anomaly_decadal_2500-6699.nc
-		cdo runmean,11 temp2_P93_NH_mean_anomaly_annual_2500-6699.nc temp2_P93_NH_mean_anomaly_decadal_2500-6699.nc
+if [ $actid -eq 9 ];then # process KCM data
+	
+		varlist="tsw"
 		
-		cdo trend temp2_P86_NH_mean_annual_2500-6699.nc ctrl_offset.tmp.nc ctrl_trend.nc
-		cdo setmisstoc,0 -setrtomiss,-9999,9999 ctrl_offset.tmp.nc ctrl_offset.nc
-		rm ctrl_offset.tmp.nc
-		cdo subtrend temp2_P86_NH_mean_annual_2500-6699.nc ctrl_offset.nc ctrl_trend.nc temp2_P86_NH_mean_annual_2500-6699_detrended.nc
-		cdo subtrend temp2_P90_NH_mean_annual_2500-6699.nc ctrl_offset.nc ctrl_trend.nc temp2_P90_NH_mean_annual_2500-6699_detrended.nc
-		cdo subtrend temp2_P93_NH_mean_annual_2500-6699.nc ctrl_offset.nc ctrl_trend.nc temp2_P93_NH_mean_annual_2500-6699_detrended.nc
+		for var in ${varlist}; do 
+			model_list="P86 P90 P92 P93 P94 P95"
+			period_list="2500-6699 2500-6699 2500-3499 2500-6699 2500-3499 2500-4499"
+			period=($period_list)
+		
+			count=0
+		
+			mkdir -p ${CMIP_dir}/data/KCM/NH_mean
+			mkdir -p ${CMIP_dir}/data/KCM/SH_mean
+			mkdir -p ${CMIP_dir}/data/KCM/whole_field
+			mkdir -p ${CMIP_dir}/data/KCM/NINO3
+			mkdir -p ${CMIP_dir}/data/KCM/AMO
+			mkdir -p ${CMIP_dir}/data/KCM/PDO
+		
+			for model in ${model_list}; do
+				cd ${CMIP_dir}/data/KCM/${model}
+			
+				if [ "${var}" == "tsw" ];then
+					if [ "${model}" == "P86" ];then # calculate model drift from control run
+						cdo trend ${model}_ym.${var}.nc ctrl_offset.tmp.nc ctrl_trend.nc
+						cdo setmisstoc,0 -setrtomiss,-9999,9999 ctrl_offset.tmp.nc ctrl_offset.nc
+						cdo -setrtomiss,273.14,273.15 -subtrend ${model}_ym.${var}.nc ctrl_offset.nc ctrl_trend.nc ${model}_ym.${var}.drift_removed.nc
+					else # remove model drift calculated from control run
+						cdo -setrtomiss,273.14,273.15 -subtrend ${model}_ym.${var}.nc ../P86/ctrl_offset.nc ../P86/ctrl_trend.nc ${model}_ym.${var}.drift_removed.nc
+					fi
+			
+					cdo sub -setctomiss,0 ${model}_ym.${var}.drift_removed.nc -timmean -setctomiss,0 ${model}_ym.${var}.drift_removed.nc ../whole_field/${var}_${model}_whole_field_anomaly_yearly_mean_${period[count]}_detrended.nc	
+					cdo -fldmean -sub -setctomiss,0 -sellonlatbox,-180,180,0,90 ${model}_ym.${var}.drift_removed.nc -timmean -setctomiss,0 -sellonlatbox,-180,180,0,90 ${model}_ym.${var}.drift_removed.nc ../NH_mean/${var}_${model}_NH_mean_anomaly_annual_mean_${period[count]}_detrended.nc	
+					cdo -fldmean -sub -setctomiss,0 -sellonlatbox,-180,180,-90,0 ${model}_ym.${var}.drift_removed.nc -timmean -setctomiss,0 -sellonlatbox,-180,180,-90,0 ${model}_ym.${var}.drift_removed.nc ../SH_mean/${var}_${model}_SH_mean_anomaly_annual_mean_${period[count]}_detrended.nc	
+					cdo -fldmean -setctomiss,0 -sellonlatbox,210,270,-5,5 ../whole_field/${var}_${model}_whole_field_anomaly_yearly_mean_${period[count]}_detrended.nc ../NINO3/${var}_${model}_NINO3_yearly_mean_${period[count]}_detrended.nc
+					cdo -fldmean -setctomiss,0 -sellonlatbox,285,352.5,0,70 ../whole_field/${var}_${model}_whole_field_anomaly_yearly_mean_${period[count]}_detrended.nc ../AMO/${var}_${model}_AMO_yearly_mean_${period[count]}_detrended.nc
+					cdo -sellonlatbox,120,-105,20,70 ../whole_field/${var}_${model}_whole_field_anomaly_yearly_mean_${period[count]}_detrended.nc ../PDO/${var}_${model}_PDO_yearly_mean_${period[count]}_detrended_pattern.nc
+					cdo eof,1  ../PDO/${var}_${model}_PDO_yearly_mean_${period[count]}_detrended_pattern.nc ../PDO/eval.nc ../PDO/${var}_${model}_PDO_yearly_mean_${period[count]}_detrended_eof.nc
+					cdo eofcoeff ../PDO/${var}_${model}_PDO_yearly_mean_${period[count]}_detrended_eof.nc ../PDO/${var}_${model}_PDO_yearly_mean_${period[count]}_detrended_pattern.nc ../PDO/${var}_${model}_PDO_yearly_mean_${period[count]}_detrended_obase_
+					cdo div ../PDO/${var}_${model}_PDO_yearly_mean_${period[count]}_detrended_obase_00000.nc -timstd ../PDO/${var}_${model}_PDO_yearly_mean_${period[count]}_detrended_obase_00000.nc ../PDO/${var}_${model}_PDO_yearly_mean_${period[count]}_detrended_pc1_standardized.nc
+					
+					rm -f ../PDO/eval.nc
+					rm -f ../PDO/${var}_${model}_PDO_yearly_mean_${period[count]}_detrended_obase_00000.nc
+					rm -f ../PDO/${var}_${model}_PDO_yearly_mean_${period[count]}_detrended_pattern.nc
+					rm -f ${model}_ym.${var}.drift_removed.nc
+					count=$((count+1))
 
-	    cdo sub temp2_P86_NH_mean_annual_2500-6699_detrended.nc -timmean temp2_P86_NH_mean_annual_2500-6699_detrended.nc temp2_P86_NH_mean_anomaly_annual_2500-6699_detrended.nc
-	    cdo sub temp2_P90_NH_mean_annual_2500-6699_detrended.nc -timmean temp2_P90_NH_mean_annual_2500-6699_detrended.nc temp2_P90_NH_mean_anomaly_annual_2500-6699_detrended.nc
-	    cdo sub temp2_P93_NH_mean_annual_2500-6699_detrended.nc -timmean temp2_P93_NH_mean_annual_2500-6699_detrended.nc temp2_P93_NH_mean_anomaly_annual_2500-6699_detrended.nc	
-	    
-	    cdo runmean,11 temp2_P86_NH_mean_anomaly_annual_2500-6699_detrended.nc temp2_P86_NH_mean_anomaly_decadal_2500-6699_detrended.nc
-		cdo runmean,11 temp2_P90_NH_mean_anomaly_annual_2500-6699_detrended.nc temp2_P90_NH_mean_anomaly_decadal_2500-6699_detrended.nc
-		cdo runmean,11 temp2_P93_NH_mean_anomaly_annual_2500-6699_detrended.nc temp2_P93_NH_mean_anomaly_decadal_2500-6699_detrended.nc
+				else 
+					if [ "${model}" == "P86" ];then # calculate model drift from control run
+						cdo trend ${model}_ym.${var}.nc ctrl_offset.tmp.nc ctrl_trend.nc
+						cdo setmisstoc,0 -setrtomiss,-9999,9999 ctrl_offset.tmp.nc ctrl_offset.nc
+						cdo subtrend ${model}_ym.${var}.nc ctrl_offset.nc ctrl_trend.nc ${model}_ym.${var}.drift_removed.nc
+					else # remove model drift calculated from control run
+						cdo subtrend ${model}_ym.${var}.nc ../P86/ctrl_offset.nc ../P86/ctrl_trend.nc ${model}_ym.${var}.drift_removed.nc
+					fi
+			
+					cdo sub ${model}_ym.${var}.drift_removed.nc -timmean ${model}_ym.${var}.drift_removed.nc ../whole_field/${var}_${model}_whole_field_anomaly_yearly_mean_${period[count]}_detrended.nc	
+					cdo -fldmean -sellonlatbox,-180,180,0,90 ../whole_field/${var}_${model}_whole_field_anomaly_yearly_mean_${period[count]}_detrended.nc ../NH_mean/${var}_${model}_NH_mean_anomaly_yearly_mean_${period[count]}_detrended.nc	
+					
+					rm -f ${model}_ym.${var}.drift_removed.nc
+					count=$((count+1))
+				fi
+			done
+		
+			rm -f ../P86/ctrl_offset.nc
+			rm -f ../P86/ctrl_trend.nc
+			rm -f ../P86/ctrl_offset.tmp.nc
+			
+		done
 fi
+
+
 
 ##########################################################################################
 
@@ -632,7 +706,7 @@ if [ $actid -eq 10 ];then # convert Mann et al data set from ascii to netcdf
 	cdo sub mann2009_reconstruction_NH_mean_0856-1845_decadal_running_mean.nc -timmean mann2009_reconstruction_NH_mean_0856-1845_decadal_running_mean.nc mann2009_reconstruction_NH_mean_anomaly_0856-1845_decadal_running_mean.nc
 	cdo sub mann2009_reconstruction_SH_mean_0851-1849_decadal_mean.nc -timmean mann2009_reconstruction_SH_mean_0851-1849_decadal_mean.nc mann2009_reconstruction_SH_mean_anomaly_0851-1849_decadal_mean.nc
 	cdo sub mann2009_reconstruction_SH_mean_0856-1845_decadal_running_mean.nc -timmean mann2009_reconstruction_SH_mean_0856-1845_decadal_running_mean.nc mann2009_reconstruction_SH_mean_anomaly_0856-1845_decadal_running_mean.nc
-	
+	cdo -fldmean -sellonlatbox,210,270,-5,5 mann2009_reconstruction_0856-1845_decadal_mean.nc mann2009_reconstruction_NINO3_0856-1845.nc
 		
 fi
 

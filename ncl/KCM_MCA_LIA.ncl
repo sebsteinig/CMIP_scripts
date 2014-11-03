@@ -81,7 +81,7 @@ wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/KCM_MCA")  ; open workstat
 plot = new(2,graphic)
 plot2 = new(2,graphic)
 
-gsn_define_colormap(wks,"BlueDarkRed18")
+;gsn_define_colormap(wks,"BlueDarkRed18")
 
 ;P90
 
@@ -138,7 +138,7 @@ wks   = gsn_open_wks ("pdf", CMIP_dir+"/plots/surface/KCM_LIA")  ; open workstat
 plot = new(2,graphic)
 plot2 = new(2,graphic)
 
-gsn_define_colormap(wks,"BlueDarkRed18")
+;gsn_define_colormap(wks,"BlueDarkRed18")
 
 ;P90
 

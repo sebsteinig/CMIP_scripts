@@ -5,6 +5,11 @@ fnames_nino_ctrl = dir('../../processed/CMIP5/piControl/Omon/tos/NINO3_original_
 fnames_amo_past = dir('../../processed/CMIP5/past1000/Omon/tos/AMO_original_resolution_monthly_mean_detrended/*.nc');
 fnames_amo_ctrl = dir('../../processed/CMIP5/piControl/Omon/tos/AMO_original_resolution_monthly_mean_detrended/*.nc');
 
+nino_tmp_mann=squeeze(ncread('../../data/observations/Mann_et_al_2009/mann2009_reconstruction_NINO3_0856-1845.nc','tas'));
+nino_time_mann(1,1:length(nino_tmp_mann))=[1:1:length(nino_tmp_mann)];
+nino_length_time_mann=length(nino_tmp_mann);
+nino_mann(1,1:length(nino_tmp_mann))=nino_tmp_mann;
+
 
 numfids = length(fnames_nino_past);
 for K = 1:numfids
@@ -63,8 +68,8 @@ ct=ct/256;
 
 
 
-min_scale=1;
-max_scale=550;
+min_scale=2;
+max_scale=2000;
 
 line_width=2;
 line_style='-';
@@ -85,7 +90,7 @@ Arrow_Density=[15 15];
 
 %% NINO3 past1000
 
-plot_nino_past=0;
+plot_nino_past=1;
 
 if plot_nino_past==1
 
@@ -100,15 +105,21 @@ if plot_nino_past==1
     for nn=1:7   
         subplot(4,2,nn)
         wt([nino_time_past(nn,1:nino_length_time_past(nn));nino_past(nn,1:nino_length_time_past(nn))],'S0',min_scale,'maxscale',max_scale,'Pad',1);
-        %caxis([log2(1/16) log2(16)]);
         title(model_names(nn),'fontsize',font_size);
+        xlabel('')
     end
+    
+        subplot(4,2,8)
+        wt([nino_time_mann(1,1:nino_length_time_mann);nino_mann(1,1:nino_length_time_mann(1))],'S0',min_scale,'maxscale',max_scale,'Pad',1);
+        title('Mann reconstruction','fontsize',font_size);
+        xlabel('')
+    
 
     [ax,s]=suplabel('wavelet transform NINO3 index past1000 experiments','t');
     set(s,'fontsize',font_size_heading)
 
-    export_fig('../../plots/wavelets/NINO3_cwt_past1000','-png','-opengl','-r150')
-    close(1);
+    export_fig('../../plots/wavelets/NINO3_cwt_past1000','-png','-r150')
+    %close(1);
 
 end
 %% NINO3 piControl
@@ -134,14 +145,14 @@ if plot_nino_ctrl==1
     [ax,s]=suplabel('wavelet transform NINO3 index piControl experiments','t');
     set(s,'fontsize',font_size_heading)
 
-    export_fig('../../plots/wavelets/NINO3_cwt_piControl','-png','-opengl','-r150')
+    export_fig('../../plots/wavelets/NINO3_cwt_piControl','-png','-r150')
     close(1);
 
 end
 
 %% AMO past1000
 
-plot_amo_past=1;
+plot_amo_past=0;
 
 if plot_amo_past==1
 
@@ -162,13 +173,13 @@ if plot_amo_past==1
     [ax,s]=suplabel('AMO index past1000 experiments','t');
     set(s,'fontsize',font_size_heading)
 
-    export_fig('../../plots/wavelets/AMO_cwt_past1000','-png','-opengl','-r150')
+    export_fig('../../plots/wavelets/AMO_cwt_past1000','-png','-r150')
     close(1);
 
 end
 %% NINO3 piControl
 
-plot_amo_ctrl=1;
+plot_amo_ctrl=0;
 
 if plot_amo_ctrl==1
     
@@ -189,7 +200,7 @@ if plot_amo_ctrl==1
     [ax,s]=suplabel('AMO index piControl experiments','t');
     set(s,'fontsize',font_size_heading)
 
-    export_fig('../../plots/wavelets/AMO_cwt_piControl','-png','-opengl','-r150')
+    export_fig('../../plots/wavelets/AMO_cwt_piControl','-png','-r150')
     close(1);
 
 end
