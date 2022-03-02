@@ -72,7 +72,7 @@ if [ $actid -eq 1 ];then # download data
     mkdir -p $CMIP_dir/data/CMIP3/$experiment/$realm/$variable
 	
     for exp in $models; do
-	    wget --user=sebsteinig --password=seppel2482 -r --reject "index.html*" -P $CMIP_dir/data/CMIP3/$experiment/$realm/mo/$variable ftp://ftp-esg.ucllnl.org/ipcc/$experiment/$realm/mo/$variable/${exp}/run1/ 
+	    wget --user=sebsteinig --password=$PSWD$ -r --reject "index.html*" -P $CMIP_dir/data/CMIP3/$experiment/$realm/mo/$variable ftp://ftp-esg.ucllnl.org/ipcc/$experiment/$realm/mo/$variable/${exp}/run1/ 
     done
 
     mv $CMIP_dir/data/CMIP3/$experiment/$realm/mo/$variable/ftp-esg.ucllnl.org/ipcc/$experiment/$realm/mo/$variable/* $CMIP_dir/data/CMIP3/$experiment/$realm/$variable
